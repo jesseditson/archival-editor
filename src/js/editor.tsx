@@ -1,14 +1,12 @@
-import React, {FC} from "react"
-import EditorData from "./model/editor"
+import React, { FC } from "react";
+import EditorData from "./model/editor";
 
 interface EditorProps {
-    data: EditorData
+  data: EditorData;
 }
 
 const Editor: FC<EditorProps> = () => {
-    return <div className="editor">
-        Editor
-    </div>
-}
+  return <div className="editor">Editor</div>;
+};
 
-export default Editor
+export default Editor;

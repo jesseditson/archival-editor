@@ -1,5 +1,11 @@
-import React from "react"
-import ReactDOM from "react-dom"
-import Editor from "./viewmodel/editor"
+import React from "react";
+import ReactDOM from "react-dom";
+import EditorVM from "./viewmodel/editor";
+import EditorModel from "./model/editor";
 
-ReactDOM.render(<Editor/>, document.getElementById("archival-editor"))
+const editorModel = new EditorModel();
+
+ReactDOM.render(
+  <EditorVM model={editorModel} />,
+  document.getElementById("archival-editor")
+);

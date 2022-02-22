@@ -1,6 +1,9 @@
-import React from "react"
-import { observer } from "mobx-react-lite"
-import Editor from "../editor"
+import React from "react";
+import { observer } from "mobx-react-lite";
+import EditorModel from "../model/editor";
+import Editor from "../editor";
 
-const EditorVM = observer(({editorData}) => <Editor data={editorData}/>)
-export default EditorVM
+const EditorVM = observer<{ model: EditorModel }>(({ model }) => (
+  <Editor data={model} />
+));
+export default EditorVM;
