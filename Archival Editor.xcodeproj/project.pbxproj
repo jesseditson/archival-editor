@@ -16,6 +16,9 @@
 		F3836A2527BC25D40078C4CF /* Archival_EditorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3836A2427BC25D40078C4CF /* Archival_EditorTests.swift */; };
 		F3836A2F27BC25D40078C4CF /* Archival_EditorUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3836A2E27BC25D40078C4CF /* Archival_EditorUITests.swift */; };
 		F3836A3127BC25D40078C4CF /* Archival_EditorUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3836A3027BC25D40078C4CF /* Archival_EditorUITestsLaunchTests.swift */; };
+		F39EC18927BC731F001AD7B9 /* SwiftGit2 in Frameworks */ = {isa = PBXBuildFile; productRef = F39EC18827BC731F001AD7B9 /* SwiftGit2 */; };
+		F39EC18B27BD932B001AD7B9 /* GitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F39EC18A27BD932B001AD7B9 /* GitTests.swift */; };
+		F3B3937627BC2E44003C1BB6 /* Git.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3B3937527BC2E44003C1BB6 /* Git.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +51,8 @@
 		F3836A2A27BC25D40078C4CF /* Archival EditorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Archival EditorUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3836A2E27BC25D40078C4CF /* Archival_EditorUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Archival_EditorUITests.swift; sourceTree = "<group>"; };
 		F3836A3027BC25D40078C4CF /* Archival_EditorUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Archival_EditorUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		F39EC18A27BD932B001AD7B9 /* GitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitTests.swift; sourceTree = "<group>"; };
+		F3B3937527BC2E44003C1BB6 /* Git.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Git.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,6 +60,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F39EC18927BC731F001AD7B9 /* SwiftGit2 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -104,6 +110,7 @@
 				F3836A1727BC25D30078C4CF /* Persistence.swift */,
 				F3836A1927BC25D30078C4CF /* Archival_Editor.xcdatamodeld */,
 				F3836A1427BC25D30078C4CF /* Preview Content */,
+				F3B3937527BC2E44003C1BB6 /* Git.swift */,
 			);
 			path = "Archival Editor";
 			sourceTree = "<group>";
@@ -120,6 +127,7 @@
 			isa = PBXGroup;
 			children = (
 				F3836A2427BC25D40078C4CF /* Archival_EditorTests.swift */,
+				F39EC18A27BD932B001AD7B9 /* GitTests.swift */,
 			);
 			path = "Archival EditorTests";
 			sourceTree = "<group>";
@@ -149,6 +157,9 @@
 			dependencies = (
 			);
 			name = "Archival Editor";
+			packageProductDependencies = (
+				F39EC18827BC731F001AD7B9 /* SwiftGit2 */,
+			);
 			productName = "Archival Editor";
 			productReference = F3836A0B27BC25D00078C4CF /* Archival Editor.app */;
 			productType = "com.apple.product-type.application";
@@ -222,8 +233,9 @@
 			);
 			mainGroup = F3836A0227BC25D00078C4CF;
 			packageReferences = (
-				F3B3937327BC2BF8003C1BB6 /* XCRemoteSwiftPackageReference "SwiftGit2" */,
 				F3B3937427BC2CEE003C1BB6 /* XCRemoteSwiftPackageReference "TOMLKit" */,
+				F3B3937727BC31F2003C1BB6 /* XCRemoteSwiftPackageReference "Clibgit2" */,
+				F39EC18727BC731F001AD7B9 /* XCRemoteSwiftPackageReference "SwiftGit2" */,
 			);
 			productRefGroup = F3836A0C27BC25D00078C4CF /* Products */;
 			projectDirPath = "";
@@ -271,6 +283,7 @@
 				F3836A1827BC25D30078C4CF /* Persistence.swift in Sources */,
 				F3836A1127BC25D00078C4CF /* ContentView.swift in Sources */,
 				F3836A0F27BC25D00078C4CF /* Archival_EditorApp.swift in Sources */,
+				F3B3937627BC2E44003C1BB6 /* Git.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -278,6 +291,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F39EC18B27BD932B001AD7B9 /* GitTests.swift in Sources */,
 				F3836A2527BC25D40078C4CF /* Archival_EditorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -362,6 +376,10 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = (
+					"-lz",
+					"-liconv",
+				);
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -416,6 +434,10 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 15.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = (
+					"-lz",
+					"-liconv",
+				);
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -599,12 +621,12 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		F3B3937327BC2BF8003C1BB6 /* XCRemoteSwiftPackageReference "SwiftGit2" */ = {
+		F39EC18727BC731F001AD7B9 /* XCRemoteSwiftPackageReference "SwiftGit2" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/light-tech/SwiftGit2";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.6.0;
+				branch = spm;
+				kind = branch;
 			};
 		};
 		F3B3937427BC2CEE003C1BB6 /* XCRemoteSwiftPackageReference "TOMLKit" */ = {
@@ -615,7 +637,23 @@
 				minimumVersion = 0.5.0;
 			};
 		};
+		F3B3937727BC31F2003C1BB6 /* XCRemoteSwiftPackageReference "Clibgit2" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/light-tech/Clibgit2.git";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F39EC18827BC731F001AD7B9 /* SwiftGit2 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F39EC18727BC731F001AD7B9 /* XCRemoteSwiftPackageReference "SwiftGit2" */;
+			productName = SwiftGit2;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCVersionGroup section */
 		F3836A1927BC25D30078C4CF /* Archival_Editor.xcdatamodeld */ = {
