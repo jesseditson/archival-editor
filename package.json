@@ -1,0 +1,29 @@
+{
+  "name": "archival-editor",
+  "version": "0.0.1",
+  "description": "A web-based editor for github-based archival websites",
+  "scripts": {
+    "start": "parcel src/index.html",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jesseditson/archival-editor.git"
+  },
+  "author": "Jesse Ditson <jesse.ditson@gmail.com>",
+  "license": "Unlicense",
+  "bugs": {
+    "url": "https://github.com/jesseditson/archival-editor/issues"
+  },
+  "homepage": "https://github.com/jesseditson/archival-editor#readme",
+  "devDependencies": {
+    "@parcel/transformer-sass": "^2.3.2",
+    "parcel": "^2.3.2"
+  },
+  "dependencies": {
+    "mobx": "^6.4.1",
+    "mobx-react-lite": "^3.3.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  }
+}
