@@ -1,15 +1,22 @@
 export enum GitWorkerOperation {
   clone,
+  confirm,
 }
 
-export interface GitWorkerData {
-  [GitWorkerOperation.clone]: {
-    url: string;
-    dir: string;
-  };
+export interface GitCloneData {
+  url: string;
+  dir: string;
 }
+
+export interface GitWorkerDataContainer {
+  [GitWorkerOperation.confirm]?: {};
+  [GitWorkerOperation.clone]?: GitCloneData;
+}
+
+export type GitWorkerData = GitCloneData | {};
 
 export interface GitWorkerMessage {
   op: GitWorkerOperation;
-  data: GitWorkerData;
+  data: GitWorkerDataContainer;
+  uuid: string;
 }
