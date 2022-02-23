@@ -2,25 +2,14 @@
 import LightningFS from "@isomorphic-git/lightning-fs";
 import git from "isomorphic-git";
 import GitHttp from "isomorphic-git/http/web/index";
-import {
-  GitCloneData,
-  GitWorkerData,
-  GitWorkerDataContainer,
-  GitWorkerMessage,
-  GitWorkerOperation,
-} from "./types";
+import { GitCloneData, GitWorkerMessage, GitWorkerOperation } from "./types";
 
 const PROXY_URL = "https://cors.isomorphic-git.org";
-
-const getOpData = <K extends keyof GitWorkerDataContainer>(
-  data: GitWorkerDataContainer,
-  key: K
-): GitWorkerDataContainer[K] => data[key];
 
 // @ts-ignore: LightningFS.FSConstructorOptions defines all keys as required.
 // See: https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/58917
 let fs = new LightningFS("fs", { wipe: false });
-self.addEventListener("message", async (evt) => {
+self.onmessage = async (evt) => {
   const message = evt.data as GitWorkerMessage;
   switch (message.op) {
     case GitWorkerOperation.clone:
@@ -28,7 +17,11 @@ self.addEventListener("message", async (evt) => {
       break;
   }
   self.postMessage({ op: GitWorkerOperation.confirm, uuid: message.uuid });
-});
+};
+
+self.onmessageerror = (error) => {
+  console.error(error);
+};
 
 const clone = async (data: GitCloneData) => {
   // @ts-ignore: see above
