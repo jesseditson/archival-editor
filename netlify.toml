@@ -1,0 +1,10 @@
+[build]
+command = "parcel build"
+publish = "dist"
+[functions]
+directory = "netlify/functions/"
+[dev]
+command = "parcel src/index.html"
+[[redirects]]
+from = "/github-oauth"
+to = "/.netlify/functions/github-oauth"

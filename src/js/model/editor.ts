@@ -1,26 +1,44 @@
-import { makeAutoObservable } from "mobx";
+import { autorun, makeAutoObservable, reaction } from "mobx";
 import { v4 as uuidv4 } from "uuid";
 import { GitWorkerData, GitWorkerMessage, GitWorkerOperation } from "../types";
 
 const waitingPromises: Map<string, Function> = new Map();
+
+interface GithubAuth {
+  accessToken: string;
+  tokenType: string;
+  scopes: string[];
+}
+
 export default class Editor {
-  repoURL: string;
+  githubAuth: GithubAuth | null = null;
+  repoURL: string = "";
   worker: Worker;
 
-  public cloneRepo = (repoURL: string) => {
-    this.repoURL = repoURL;
+  get authenticated(): boolean {
+    return !!this.repoURL && !!this.githubAuth;
+  }
+
+  public cloneRepo = () => {
     return this.perform(GitWorkerOperation.clone, {
-      url: repoURL,
-      dir: `/${hashCode(repoURL)}`,
+      url: this.repoURL,
+      dir: `/${hashCode(this.repoURL)}`,
     });
   };
 
-  constructor() {
-    this.repoURL = "https://github.com/jesseditson/archival-docs";
+  constructor(serialized: string | null, path: string, queryString: string) {
+    makeAutoObservable(this);
+    const query = new URLSearchParams(queryString);
+    if (this.loadAuth(path, query)) {
+      window.location.replace("/");
+    } else if (serialized) {
+      const init = JSON.parse(serialized);
+      this.repoURL = init.repoURL;
+      this.githubAuth = init.githubAuth;
+    }
     this.worker = new Worker(new URL("../git-worker.ts", import.meta.url), {
       type: "module",
     });
-    makeAutoObservable(this);
     this.worker.onmessageerror = (error) => {
       console.error(error);
     };
@@ -36,6 +54,18 @@ export default class Editor {
       console.log(message.data);
     };
   }
+
+  private loadAuth = (path: string, data: URLSearchParams): boolean => {
+    if (path === "/authorized/github") {
+      this.githubAuth = {
+        accessToken: data.get("access_token")!,
+        tokenType: data.get("token_type")!,
+        scopes: data.get("scope")?.split(" ")!,
+      };
+      return true;
+    }
+    return false;
+  };
 
   private perform = (op: GitWorkerOperation, data?: GitWorkerData) => {
     const uuid = uuidv4();
@@ -54,4 +84,17 @@ function hashCode(str: string) {
     hash = hash & hash; // Convert to 32bit integer
   }
   return hash;
+}
+
+export function onPersist(
+  editor: Editor,
+  callback: (serialized: string) => Promise<void> | void
+) {
+  autorun(() => {
+    const data = {
+      repoURL: editor.repoURL,
+      githubAuth: editor.githubAuth,
+    };
+    callback(JSON.stringify(data));
+  });
 }
