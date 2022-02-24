@@ -8,6 +8,10 @@ const EditorVM = observer<{ editorModel: EditorModel }>(({ editorModel }) => {
     <EditorView
       repoURL={editorModel.repoURL}
       cloneRepo={editorModel.cloneRepo}
+      progress={editorModel.progressInfo}
+      cloned={editorModel.cloned}
+      cloning={editorModel.cloning}
+      reset={editorModel.reset}
     />
   );
 });

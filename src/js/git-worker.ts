@@ -18,7 +18,7 @@ const perform = <T extends GitWorkerOperation>(
 ) => {
   const uuid = uuidv4();
   self.postMessage({
-    op: GitWorkerOperation.confirm,
+    op: operation,
     uuid,
     data: {
       [operation]: data,
@@ -62,7 +62,10 @@ const clone = async (data: GitCloneData) => {
       console.log(msg);
     },
     onAuth(url) {
-      console.log(url);
+      return {
+        username: data.accessToken,
+        password: "x-oauth-basic",
+      };
     },
     onAuthFailure(msg) {
       console.log(msg);

@@ -7,6 +7,7 @@ export enum GitWorkerOperation {
 export interface GitCloneData {
   url: string;
   dir: string;
+  accessToken?: string;
 }
 
 export interface ProgressInfo {

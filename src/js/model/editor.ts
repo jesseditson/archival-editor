@@ -1,7 +1,6 @@
-import { autorun, makeAutoObservable } from "mobx";
+import { runInAction, autorun, makeAutoObservable } from "mobx";
 import { v4 as uuidv4 } from "uuid";
 import {
-  GitWorkerData,
   GitWorkerDataType,
   GitWorkerMessage,
   GitWorkerOperation,
@@ -19,6 +18,7 @@ interface GithubAuth {
 export default class Editor {
   githubAuth: GithubAuth | null = null;
   repoURL: string = "";
+  cloning: boolean = false;
   cloned: boolean = false;
   progressInfo: ProgressInfo | null = null;
   worker: Worker;
@@ -28,12 +28,27 @@ export default class Editor {
   }
 
   public cloneRepo = async () => {
-    this.cloned = false;
+    runInAction(() => {
+      this.cloned = false;
+      this.cloning = true;
+    });
     await this.perform(GitWorkerOperation.clone, {
       url: this.repoURL,
       dir: `/${hashCode(this.repoURL)}`,
+      accessToken: this.githubAuth?.accessToken,
     });
-    this.cloned = true;
+    runInAction(() => {
+      this.cloning = false;
+      this.cloned = true;
+    });
+  };
+
+  public reset = () => {
+    runInAction(() => {
+      this.repoURL = "";
+      this.cloned = false;
+      this.progressInfo = null;
+    });
   };
 
   constructor(serialized: string | null, path: string, queryString: string) {
@@ -45,6 +60,7 @@ export default class Editor {
       const init = JSON.parse(serialized);
       this.repoURL = init.repoURL;
       this.githubAuth = init.githubAuth;
+      this.cloned = init.cloned;
     }
     this.worker = new Worker(new URL("../git-worker.ts", import.meta.url), {
       type: "module",
@@ -61,10 +77,13 @@ export default class Editor {
         }
         return;
       } else if (message.op === GitWorkerOperation.progress) {
-        this.progressInfo = message.data[GitWorkerOperation.progress] || null;
-        if (this.progressInfo?.progress === 1) {
-          this.progressInfo = null;
-        }
+        runInAction(() => {
+          this.progressInfo = message.data[GitWorkerOperation.progress] || null;
+          if (this.progressInfo?.progress === 1) {
+            this.progressInfo = null;
+          }
+        });
+        return;
       }
       console.log(message.data);
     };
@@ -112,6 +131,7 @@ export function onPersist(
     const data = {
       repoURL: editor.repoURL,
       githubAuth: editor.githubAuth,
+      cloned: editor.cloned,
     };
     callback(JSON.stringify(data));
   });
