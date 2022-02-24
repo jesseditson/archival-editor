@@ -1,6 +1,12 @@
-import { autorun, makeAutoObservable, reaction } from "mobx";
+import { autorun, makeAutoObservable } from "mobx";
 import { v4 as uuidv4 } from "uuid";
-import { GitWorkerData, GitWorkerMessage, GitWorkerOperation } from "../types";
+import {
+  GitWorkerData,
+  GitWorkerDataType,
+  GitWorkerMessage,
+  GitWorkerOperation,
+  ProgressInfo,
+} from "../types";
 
 const waitingPromises: Map<string, Function> = new Map();
 
@@ -13,17 +19,21 @@ interface GithubAuth {
 export default class Editor {
   githubAuth: GithubAuth | null = null;
   repoURL: string = "";
+  cloned: boolean = false;
+  progressInfo: ProgressInfo | null = null;
   worker: Worker;
 
   get authenticated(): boolean {
     return !!this.repoURL && !!this.githubAuth;
   }
 
-  public cloneRepo = () => {
-    return this.perform(GitWorkerOperation.clone, {
+  public cloneRepo = async () => {
+    this.cloned = false;
+    await this.perform(GitWorkerOperation.clone, {
       url: this.repoURL,
       dir: `/${hashCode(this.repoURL)}`,
     });
+    this.cloned = true;
   };
 
   constructor(serialized: string | null, path: string, queryString: string) {
@@ -50,6 +60,11 @@ export default class Editor {
           promise();
         }
         return;
+      } else if (message.op === GitWorkerOperation.progress) {
+        this.progressInfo = message.data[GitWorkerOperation.progress] || null;
+        if (this.progressInfo?.progress === 1) {
+          this.progressInfo = null;
+        }
       }
       console.log(message.data);
     };
@@ -67,7 +82,10 @@ export default class Editor {
     return false;
   };
 
-  private perform = (op: GitWorkerOperation, data?: GitWorkerData) => {
+  private perform = <T extends GitWorkerOperation>(
+    op: T,
+    data?: GitWorkerDataType<T>
+  ) => {
     const uuid = uuidv4();
     this.worker.postMessage({ op: op, uuid: uuid, data: { [op]: data } });
     return new Promise<void>((resolve) => {

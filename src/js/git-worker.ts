@@ -1,10 +1,30 @@
 /* eslint-env worker */
 import LightningFS from "@isomorphic-git/lightning-fs";
 import git from "isomorphic-git";
+import { v4 as uuidv4 } from "uuid";
 import GitHttp from "isomorphic-git/http/web/index";
-import { GitCloneData, GitWorkerMessage, GitWorkerOperation } from "./types";
+import {
+  GitCloneData,
+  GitWorkerMessage,
+  GitWorkerOperation,
+  GitWorkerDataType,
+} from "./types";
 
 const PROXY_URL = "https://cors.isomorphic-git.org";
+
+const perform = <T extends GitWorkerOperation>(
+  operation: T,
+  data: GitWorkerDataType<T>
+) => {
+  const uuid = uuidv4();
+  self.postMessage({
+    op: GitWorkerOperation.confirm,
+    uuid,
+    data: {
+      [operation]: data,
+    },
+  });
+};
 
 // @ts-ignore: LightningFS.FSConstructorOptions defines all keys as required.
 // See: https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/58917
@@ -33,7 +53,10 @@ const clone = async (data: GitCloneData) => {
     http: GitHttp,
     dir: data.dir,
     onProgress(evt) {
-      console.log(evt);
+      perform(GitWorkerOperation.progress, {
+        task: evt.phase,
+        progress: evt.loaded / evt.total,
+      });
     },
     onMessage(msg) {
       console.log(msg);
