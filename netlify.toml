@@ -8,3 +8,6 @@ command = "parcel src/index.html"
 [[redirects]]
 from = "/github-oauth"
 to = "/.netlify/functions/github-oauth"
+[[redirects]]
+from = "/cors-proxy"
+to = "/.netlify/functions/cors-proxy"
