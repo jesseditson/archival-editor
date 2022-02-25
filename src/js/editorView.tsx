@@ -1,4 +1,5 @@
 import React, { FC, useState } from "react";
+import RepoView from "./repoView";
 import { Objects, ObjectTypes, ProgressInfo } from "./types";
 
 interface EditorViewProps {
@@ -9,31 +10,13 @@ interface EditorViewProps {
   progress: ProgressInfo | null;
   objectTypes?: ObjectTypes;
   objects?: Objects;
-  cloneRepo: () => void;
+  cloneRepo: (branch: string) => void;
   reset: () => void;
 }
-
-interface RepoViewProps {
-  repoURL: string;
-  branch: string;
-  objectTypes?: ObjectTypes;
-  objects?: Objects;
-}
-
-const RepoView: FC<RepoViewProps> = ({ repoURL, objectTypes, objects }) => {
-  return (
-    <>
-      {Object.keys(objectTypes || {}).map((name) => {
-        return <h2>{name}</h2>;
-      })}
-    </>
-  );
-};
 
 interface CloneViewProps {
   cloning: boolean;
   branch: string;
-  setBranch: string;
   cloneRepo: (branch: string) => void;
   progress: ProgressInfo | null;
 }
@@ -83,12 +66,14 @@ const EditorView: FC<EditorViewProps> = ({
       <button onClick={reset}>Reset</button>
       {cloned ? (
         <RepoView
+          branch={branch}
           repoURL={repoURL}
           objects={objects}
           objectTypes={objectTypes}
         />
       ) : (
         <CloneView
+          branch={branch}
           cloning={cloning}
           cloneRepo={cloneRepo}
           progress={progress}

@@ -90,7 +90,7 @@ const clone = async (data: GitCloneData) => {
       console.log(msg);
     },
   });
-  await refreshObjects(data.branch);
+  await refreshObjects();
 };
 
 const parseObject = (
@@ -103,26 +103,29 @@ const parseObject = (
   return objectData;
 };
 
-const refreshObjects = async (branch: string = "HEAD") => {
-  const files = await git.listFiles({ fs, dir: "/", ref: branch });
-  console.log(files);
+const refreshObjects = async () => {
   const objectsStr = (
     await fs.promises.readFile("/objects.toml", { encoding: "utf8" })
   ).toString();
   const objectTypes = toml.parse(objectsStr) as ObjectTypes;
   const objectDirs = await fs.promises.readdir("/objects");
   const objects: Objects = {};
-  Promise.all(
+  await Promise.all(
     objectDirs.map(async (name) => {
       const objectFiles = await fs.promises.readdir(`/objects/${name}`);
       objects[name] = [];
-      return (await Promise.all(objectFiles)).map(async (file) => {
-        const objectName = file.replace(/\.[^\.]+$/, "");
-        const fileStr = (
-          await fs.promises.readFile(`/objects/${name}/${file}`)
-        ).toString();
-        objects[name].push(parseObject(objectTypes[name], objectName, fileStr));
-      });
+      return Promise.all(
+        objectFiles.map(async (file) => {
+          const objectName = file.replace(/\.[^\.]+$/, "");
+          const fileStr = (
+            await fs.promises.readFile(`/objects/${name}/${file}`, {
+              encoding: "utf8",
+            })
+          ).toString();
+          const obj = parseObject(objectTypes[name], objectName, fileStr);
+          objects[name].push(obj);
+        })
+      );
     })
   );
   perform(GitWorkerOperation.objects, {

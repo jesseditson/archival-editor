@@ -7,6 +7,7 @@ const EditorVM = observer<{ editorModel: EditorModel }>(({ editorModel }) => {
   return (
     <EditorView
       repoURL={editorModel.repoURL}
+      branch={editorModel.branch}
       cloneRepo={editorModel.cloneRepo}
       progress={editorModel.progressInfo}
       cloned={editorModel.cloned}
