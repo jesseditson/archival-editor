@@ -4,6 +4,14 @@ import EditorVM from "./viewmodel/editor";
 import EditorModel, { onPersist } from "./model/editor";
 import ChooseRepoVM from "./viewmodel/chooseRepo";
 import { autorun } from "mobx";
+import { observer } from "mobx-react-lite";
+
+const Content = observer<{ editorModel: EditorModel }>(({ editorModel }) => {
+  if (editorModel.authenticated) {
+    return <EditorVM editorModel={editorModel} />;
+  }
+  return <ChooseRepoVM editorModel={editorModel} />;
+});
 
 const App: FC = () => {
   const createModel = useCallback(
@@ -25,10 +33,7 @@ const App: FC = () => {
       console.log(editorModel);
     });
   }, [editorModel]);
-  if (editorModel.authenticated) {
-    return <EditorVM editorModel={editorModel} />;
-  }
-  return <ChooseRepoVM editorModel={editorModel} />;
+  return <Content editorModel={editorModel} />;
 };
 
 ReactDOM.render(<App />, document.getElementById("archival-editor"));

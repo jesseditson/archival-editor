@@ -1,23 +1,29 @@
 import React, { FC } from "react";
-import { ProgressInfo } from "./types";
+import { Objects, ObjectTypes, ProgressInfo } from "./types";
 
 interface EditorViewProps {
   cloned: boolean;
   cloning: boolean;
   repoURL: string;
   progress: ProgressInfo | null;
+  objectTypes?: ObjectTypes;
+  objects?: Objects;
   cloneRepo: () => void;
   reset: () => void;
 }
 
 interface RepoViewProps {
   repoURL: string;
+  objectTypes?: ObjectTypes;
+  objects?: Objects;
 }
 
-const RepoView: FC<RepoViewProps> = ({ repoURL }) => {
+const RepoView: FC<RepoViewProps> = ({ repoURL, objectTypes, objects }) => {
   return (
     <>
-      <span>repo: {repoURL}</span>
+      {Object.keys(objectTypes || {}).map((name) => {
+        return <h2>{name}</h2>;
+      })}
     </>
   );
 };
@@ -48,11 +54,19 @@ const EditorView: FC<EditorViewProps> = ({
   cloneRepo,
   progress,
   reset,
+  objects,
+  objectTypes,
 }) => {
   return (
     <div className="editor">
+      <span>repo: {repoURL}</span>
+      <button onClick={reset}>Reset</button>
       {cloned ? (
-        <RepoView repoURL={repoURL} />
+        <RepoView
+          repoURL={repoURL}
+          objects={objects}
+          objectTypes={objectTypes}
+        />
       ) : (
         <CloneView
           cloning={cloning}
@@ -60,7 +74,6 @@ const EditorView: FC<EditorViewProps> = ({
           progress={progress}
         />
       )}
-      <button onClick={reset}>Reset</button>
     </div>
   );
 };

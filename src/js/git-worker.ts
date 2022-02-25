@@ -3,14 +3,20 @@ import LightningFS from "@isomorphic-git/lightning-fs";
 import git from "isomorphic-git";
 import { v4 as uuidv4 } from "uuid";
 import GitHttp from "isomorphic-git/http/web/index";
+import toml from "toml";
+
 import {
   GitCloneData,
   GitWorkerMessage,
   GitWorkerOperation,
   GitWorkerDataType,
+  ObjectTypes,
+  Objects,
+  ObjectDefinition,
+  ObjectData,
 } from "./types";
 
-const PROXY_URL = "https://cors.isomorphic-git.org";
+const PROXY_URL = process.env.PROXY_URL;
 
 const perform = <T extends GitWorkerOperation>(
   operation: T,
@@ -26,14 +32,15 @@ const perform = <T extends GitWorkerOperation>(
   });
 };
 
-// @ts-ignore: LightningFS.FSConstructorOptions defines all keys as required.
-// See: https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/58917
 let fs = new LightningFS("fs", { wipe: false });
 self.onmessage = async (evt) => {
   const message = evt.data as GitWorkerMessage;
   switch (message.op) {
     case GitWorkerOperation.clone:
-      await clone(message.data[message.op] as GitCloneData);
+      await handleErrors(() => clone(message.data[message.op] as GitCloneData));
+      break;
+    case GitWorkerOperation.refreshObjects:
+      await handleErrors(refreshObjects);
       break;
   }
   self.postMessage({ op: GitWorkerOperation.confirm, uuid: message.uuid });
@@ -43,10 +50,18 @@ self.onmessageerror = (error) => {
   console.error(error);
 };
 
+const handleErrors = async <T>(block: () => Promise<T>): Promise<T | void> => {
+  try {
+    return block();
+  } catch (error) {
+    perform(GitWorkerOperation.error, { message: (error as Error).message });
+    return Promise.resolve();
+  }
+};
+
 const clone = async (data: GitCloneData) => {
-  // @ts-ignore: see above
   fs = new LightningFS("fs", { wipe: true });
-  return git.clone({
+  await git.clone({
     corsProxy: PROXY_URL,
     url: data.url,
     fs,
@@ -70,5 +85,43 @@ const clone = async (data: GitCloneData) => {
     onAuthFailure(msg) {
       console.log(msg);
     },
+  });
+  await refreshObjects();
+};
+
+const parseObject = (
+  definition: ObjectDefinition,
+  name: string,
+  fileStr: string
+) => {
+  const objectData = toml.parse(fileStr) as ObjectData;
+  objectData._name = name;
+  return objectData;
+};
+
+const refreshObjects = async () => {
+  console.log(await fs.promises.readdir("/"));
+  const objectsStr = (
+    await fs.promises.readFile("/objects.toml", { encoding: "utf8" })
+  ).toString();
+  const objectTypes = toml.parse(objectsStr) as ObjectTypes;
+  const objectDirs = await fs.promises.readdir("/objects");
+  const objects: Objects = {};
+  Promise.all(
+    objectDirs.map(async (name) => {
+      const objectFiles = await fs.promises.readdir(`/objects/${name}`);
+      objects[name] = [];
+      return (await Promise.all(objectFiles)).map(async (file) => {
+        const objectName = file.replace(/\.[^\.]+$/, "");
+        const fileStr = (
+          await fs.promises.readFile(`/objects/${name}/${file}`)
+        ).toString();
+        objects[name].push(parseObject(objectTypes[name], objectName, fileStr));
+      });
+    })
+  );
+  perform(GitWorkerOperation.objects, {
+    types: objectTypes,
+    objects,
   });
 };

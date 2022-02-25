@@ -29,9 +29,7 @@ const ChooseRepoVM = observer<{ editorModel: EditorModel }>(
     }, []);
     return (
       <ChooseRepoView
-        initialRepoURL={
-          editorModel.repoURL || "https://github.com/jesseditson/archival-docs"
-        }
+        initialRepoURL={editorModel.repoURL}
         setRepoURL={setRepoURL}
       />
     );

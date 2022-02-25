@@ -2,6 +2,9 @@ export enum GitWorkerOperation {
   clone,
   confirm,
   progress,
+  refreshObjects,
+  objects,
+  error,
 }
 
 export interface GitCloneData {
@@ -15,13 +18,46 @@ export interface ProgressInfo {
   progress: number;
 }
 
+// TODO: only the "template" key should be allowed to be an arbitrary string.
+export type ScalarType = "string" | "markdown" | string;
+
+export interface ObjectDefinition {
+  [key: string]: ScalarType;
+}
+
+export interface ObjectTypes {
+  [name: string]: ObjectDefinition;
+}
+
+export type ObjectValue = string | number;
+
+export interface ObjectData {
+  _name: string;
+  [key: string]: ObjectValue | ObjectValue[];
+}
+
+export interface Objects {
+  [name: string]: ObjectData[];
+}
+
+export interface ObjectsData {
+  types: ObjectTypes;
+  objects: Objects;
+}
+
+export interface ErrorData {
+  message: string;
+}
+
 export type GitWorkerDataType<T extends GitWorkerOperation> =
-  T extends GitWorkerOperation.confirm
-    ? {}
+  T extends GitWorkerOperation.objects
+    ? ObjectsData
     : T extends GitWorkerOperation.clone
     ? GitCloneData
     : T extends GitWorkerOperation.progress
     ? ProgressInfo
+    : T extends GitWorkerOperation.error
+    ? ErrorData
     : never;
 
 export type GitWorkerDataContainer = {

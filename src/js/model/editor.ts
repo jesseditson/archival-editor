@@ -1,9 +1,17 @@
-import { runInAction, autorun, makeAutoObservable } from "mobx";
+import {
+  runInAction,
+  autorun,
+  makeObservable,
+  observable,
+  computed,
+} from "mobx";
 import { v4 as uuidv4 } from "uuid";
 import {
+  ErrorData,
   GitWorkerDataType,
   GitWorkerMessage,
   GitWorkerOperation,
+  ObjectsData,
   ProgressInfo,
 } from "../types";
 
@@ -22,6 +30,8 @@ export default class Editor {
   cloned: boolean = false;
   progressInfo: ProgressInfo | null = null;
   worker: Worker;
+  objects: ObjectsData | null = null;
+  errors: ErrorData[] = [];
 
   get authenticated(): boolean {
     return !!this.repoURL && !!this.githubAuth;
@@ -43,16 +53,30 @@ export default class Editor {
     });
   };
 
+  public refreshObjects = () => {
+    this.perform(GitWorkerOperation.refreshObjects);
+  };
+
   public reset = () => {
     runInAction(() => {
       this.repoURL = "";
       this.cloned = false;
       this.progressInfo = null;
+      this.objects = null;
     });
   };
 
   constructor(serialized: string | null, path: string, queryString: string) {
-    makeAutoObservable(this);
+    makeObservable(this, {
+      githubAuth: observable,
+      repoURL: observable,
+      authenticated: computed,
+      cloning: observable,
+      cloned: observable,
+      progressInfo: observable,
+      objects: observable,
+      errors: observable,
+    });
     const query = new URLSearchParams(queryString);
     if (this.loadAuth(path, query)) {
       window.location.replace("/");
@@ -68,25 +92,10 @@ export default class Editor {
     this.worker.onmessageerror = (error) => {
       console.error(error);
     };
-    this.worker.onmessage = (evt) => {
-      const message = evt.data as GitWorkerMessage;
-      if (message.op === GitWorkerOperation.confirm) {
-        const promise = waitingPromises.get(message.uuid);
-        if (promise) {
-          promise();
-        }
-        return;
-      } else if (message.op === GitWorkerOperation.progress) {
-        runInAction(() => {
-          this.progressInfo = message.data[GitWorkerOperation.progress] || null;
-          if (this.progressInfo?.progress === 1) {
-            this.progressInfo = null;
-          }
-        });
-        return;
-      }
-      console.log(message.data);
-    };
+    this.worker.onmessage = this.handleMessage;
+    if (this.cloned) {
+      this.refreshObjects();
+    }
   }
 
   private loadAuth = (path: string, data: URLSearchParams): boolean => {
@@ -99,6 +108,39 @@ export default class Editor {
       return true;
     }
     return false;
+  };
+
+  private handleMessage = (evt: MessageEvent<GitWorkerMessage>) => {
+    const message = evt.data;
+    switch (message.op) {
+      case GitWorkerOperation.confirm:
+        const promise = waitingPromises.get(message.uuid);
+        if (promise) {
+          promise();
+        }
+        return;
+      case GitWorkerOperation.progress:
+        runInAction(() => {
+          this.progressInfo = message.data[GitWorkerOperation.progress] || null;
+          if (this.progressInfo?.progress === 1) {
+            this.progressInfo = null;
+          }
+        });
+        return;
+      case GitWorkerOperation.objects:
+        runInAction(() => {
+          this.objects = message.data[GitWorkerOperation.objects] || null;
+        });
+        return;
+      case GitWorkerOperation.error:
+        runInAction(() => {
+          const error = message.data[GitWorkerOperation.error];
+          console.error(`ERROR: ${error}`);
+          this.errors.push(error!);
+        });
+        return;
+    }
+    console.log(message.data);
   };
 
   private perform = <T extends GitWorkerOperation>(

@@ -12,6 +12,8 @@ const EditorVM = observer<{ editorModel: EditorModel }>(({ editorModel }) => {
       cloned={editorModel.cloned}
       cloning={editorModel.cloning}
       reset={editorModel.reset}
+      objectTypes={editorModel.objects?.types}
+      objects={editorModel.objects?.objects}
     />
   );
 });
