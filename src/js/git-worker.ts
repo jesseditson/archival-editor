@@ -93,6 +93,15 @@ const clone = async (data: GitCloneData) => {
   await refreshObjects();
 };
 
+const parseObjectTypes = (objectsStr: string) => {
+  const types = toml.parse(objectsStr) as ObjectTypes;
+  for (const t in types) {
+    // Remove special fields that are not related to editable content.
+    delete types[t].template;
+  }
+  return types;
+};
+
 const parseObject = (
   definition: ObjectDefinition,
   name: string,
@@ -107,7 +116,7 @@ const refreshObjects = async () => {
   const objectsStr = (
     await fs.promises.readFile("/objects.toml", { encoding: "utf8" })
   ).toString();
-  const objectTypes = toml.parse(objectsStr) as ObjectTypes;
+  const objectTypes = parseObjectTypes(objectsStr);
   const objectDirs = await fs.promises.readdir("/objects");
   const objects: Objects = {};
   await Promise.all(
