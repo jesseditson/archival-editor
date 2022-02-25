@@ -66,7 +66,11 @@ const clone = async (data: GitCloneData) => {
     url: data.url,
     fs,
     http: GitHttp,
-    dir: data.dir,
+    dir: "/",
+    ref: data.branch,
+    singleBranch: true,
+    noTags: true,
+    depth: 1,
     onProgress(evt) {
       perform(GitWorkerOperation.progress, {
         task: evt.phase,
@@ -86,7 +90,7 @@ const clone = async (data: GitCloneData) => {
       console.log(msg);
     },
   });
-  await refreshObjects();
+  await refreshObjects(data.branch);
 };
 
 const parseObject = (
@@ -99,8 +103,9 @@ const parseObject = (
   return objectData;
 };
 
-const refreshObjects = async () => {
-  console.log(await fs.promises.readdir("/"));
+const refreshObjects = async (branch: string = "HEAD") => {
+  const files = await git.listFiles({ fs, dir: "/", ref: branch });
+  console.log(files);
   const objectsStr = (
     await fs.promises.readFile("/objects.toml", { encoding: "utf8" })
   ).toString();

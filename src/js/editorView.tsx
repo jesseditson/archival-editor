@@ -1,10 +1,11 @@
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import { Objects, ObjectTypes, ProgressInfo } from "./types";
 
 interface EditorViewProps {
   cloned: boolean;
   cloning: boolean;
   repoURL: string;
+  branch: string;
   progress: ProgressInfo | null;
   objectTypes?: ObjectTypes;
   objects?: Objects;
@@ -14,6 +15,7 @@ interface EditorViewProps {
 
 interface RepoViewProps {
   repoURL: string;
+  branch: string;
   objectTypes?: ObjectTypes;
   objects?: Objects;
 }
@@ -30,14 +32,31 @@ const RepoView: FC<RepoViewProps> = ({ repoURL, objectTypes, objects }) => {
 
 interface CloneViewProps {
   cloning: boolean;
-  cloneRepo: () => void;
+  branch: string;
+  setBranch: string;
+  cloneRepo: (branch: string) => void;
   progress: ProgressInfo | null;
 }
 
-const CloneView: FC<CloneViewProps> = ({ cloning, cloneRepo, progress }) => {
+const CloneView: FC<CloneViewProps> = ({
+  branch: initialBranch,
+  cloning,
+  cloneRepo,
+  progress,
+}) => {
+  const [branch, updateBranch] = useState(initialBranch);
   return (
     <>
-      {cloning ? null : <button onClick={cloneRepo}>Clone Repo</button>}
+      {cloning ? null : (
+        <input
+          value={branch}
+          onChange={(e) => updateBranch(e.target.value)}
+          placeholder="branch"
+        />
+      )}
+      {cloning ? null : (
+        <button onClick={() => cloneRepo(branch)}>Clone Repo</button>
+      )}
       {progress ? (
         <span>
           {progress.task}: {Math.round(progress.progress * 100)}%
@@ -48,6 +67,7 @@ const CloneView: FC<CloneViewProps> = ({ cloning, cloneRepo, progress }) => {
 };
 
 const EditorView: FC<EditorViewProps> = ({
+  branch,
   cloned,
   cloning,
   repoURL,

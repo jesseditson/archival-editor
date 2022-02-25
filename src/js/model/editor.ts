@@ -26,6 +26,7 @@ interface GithubAuth {
 export default class Editor {
   githubAuth: GithubAuth | null = null;
   repoURL: string = "";
+  branch: string = "main";
   cloning: boolean = false;
   cloned: boolean = false;
   progressInfo: ProgressInfo | null = null;
@@ -37,15 +38,16 @@ export default class Editor {
     return !!this.repoURL && !!this.githubAuth;
   }
 
-  public cloneRepo = async () => {
+  public cloneRepo = async (branch: string) => {
     runInAction(() => {
+      this.branch = branch;
       this.cloned = false;
       this.cloning = true;
     });
     await this.perform(GitWorkerOperation.clone, {
       url: this.repoURL,
-      dir: `/${hashCode(this.repoURL)}`,
       accessToken: this.githubAuth?.accessToken,
+      branch: this.branch,
     });
     runInAction(() => {
       this.cloning = false;
@@ -60,6 +62,7 @@ export default class Editor {
   public reset = () => {
     runInAction(() => {
       this.repoURL = "";
+      this.branch = "main";
       this.cloned = false;
       this.progressInfo = null;
       this.objects = null;
@@ -70,6 +73,7 @@ export default class Editor {
     makeObservable(this, {
       githubAuth: observable,
       repoURL: observable,
+      branch: observable,
       authenticated: computed,
       cloning: observable,
       cloned: observable,
@@ -83,6 +87,7 @@ export default class Editor {
     } else if (serialized) {
       const init = JSON.parse(serialized);
       this.repoURL = init.repoURL;
+      this.branch = init.branch;
       this.githubAuth = init.githubAuth;
       this.cloned = init.cloned;
     }
@@ -155,16 +160,6 @@ export default class Editor {
   };
 }
 
-function hashCode(str: string) {
-  var hash = 0;
-  for (var i = 0; i < str.length; i++) {
-    var char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return hash;
-}
-
 export function onPersist(
   editor: Editor,
   callback: (serialized: string) => Promise<void> | void
@@ -172,6 +167,7 @@ export function onPersist(
   autorun(() => {
     const data = {
       repoURL: editor.repoURL,
+      branch: editor.branch,
       githubAuth: editor.githubAuth,
       cloned: editor.cloned,
     };
