@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "A web-based editor for github-based archival websites",
   "scripts": {
+    "build": "parcel build src/index.html",
     "start": "netlify dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
