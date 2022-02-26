@@ -45,6 +45,10 @@ export interface ObjectsData {
   objects: Objects;
 }
 
+export interface ValidationError {
+  message: string;
+}
+
 export interface ErrorData {
   message: string;
 }
