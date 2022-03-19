@@ -5,7 +5,8 @@
   "scripts": {
     "build": "parcel build src/index.html",
     "start": "netlify dev",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "git push -u archival.dev main:editor"
   },
   "repository": {
     "type": "git",
@@ -37,6 +38,7 @@
     "mobx": "^6.4.1",
     "mobx-react-lite": "^3.3.0",
     "pluralize": "^8.0.0",
+    "query-string": "^7.1.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "toml": "^3.0.0",

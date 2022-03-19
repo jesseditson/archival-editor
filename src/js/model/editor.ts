@@ -6,8 +6,10 @@ import {
   computed,
 } from "mobx";
 import { v4 as uuidv4 } from "uuid";
+import GithubClient, { GithubAuth } from "../lib/github-client";
 import {
   ErrorData,
+  Github,
   GitWorkerDataType,
   GitWorkerMessage,
   GitWorkerOperation,
@@ -17,14 +19,10 @@ import {
 
 const waitingPromises: Map<string, Function> = new Map();
 
-interface GithubAuth {
-  accessToken: string;
-  tokenType: string;
-  scopes: string[];
-}
-
 export default class Editor {
   githubAuth: GithubAuth | null = null;
+  githubClient: GithubClient | null = null;
+  repoList: Github.Repo[] = [];
   repoURL: string = "";
   branch: string = "main";
   cloning: boolean = false;
@@ -69,9 +67,21 @@ export default class Editor {
     });
   };
 
+  public refreshRepos = async () => {
+    if (!this.githubClient) {
+      throw new Error("Not Logged In");
+    }
+    const repoList = await this.githubClient.allUserRepos();
+    runInAction(() => {
+      console.log(repoList);
+      this.repoList = repoList;
+    });
+  };
+
   constructor(serialized: string | null, path: string, queryString: string) {
     makeObservable(this, {
       githubAuth: observable,
+      repoList: observable,
       repoURL: observable,
       branch: observable,
       authenticated: computed,
@@ -98,6 +108,9 @@ export default class Editor {
       console.error(error);
     };
     this.worker.onmessage = this.handleMessage;
+    if (this.githubAuth) {
+      this.githubClient = new GithubClient(this.githubAuth);
+    }
     if (this.cloned) {
       this.refreshObjects();
     }
@@ -110,6 +123,7 @@ export default class Editor {
         tokenType: data.get("token_type")!,
         scopes: data.get("scope")?.split(" ")!,
       };
+      this.githubClient = new GithubClient(this.githubAuth);
       return true;
     }
     return false;

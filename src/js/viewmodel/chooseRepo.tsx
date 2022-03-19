@@ -29,6 +29,8 @@ const ChooseRepoVM = observer<{ editorModel: EditorModel }>(
     }, []);
     return (
       <ChooseRepoView
+        refreshRepos={editorModel.refreshRepos}
+        repoList={editorModel.repoList}
         initialRepoURL={editorModel.repoURL}
         setRepoURL={setRepoURL}
       />
