@@ -5,6 +5,7 @@ export enum GitWorkerOperation {
   refreshObjects,
   objects,
   error,
+  sync,
 }
 
 export interface GitCloneData {
@@ -29,11 +30,32 @@ export interface ObjectTypes {
   [name: string]: ObjectDefinition;
 }
 
-export type ObjectValue = string | number;
+export type ObjectArrayValue = string[] | number[];
+export type ObjectValue =
+  | string
+  | number
+  | ObjectArrayValue
+  | ObjectArrayValue[];
 
 export interface ObjectData {
+  _filename: string;
   _name: string;
-  [key: string]: ObjectValue | ObjectValue[];
+  _id: string;
+  [key: string]: ObjectValue;
+}
+
+export type ContentAddressableObjectData = Omit<ObjectData, "_id">;
+export type WriteableObjectData = Omit<
+  ContentAddressableObjectData,
+  "_name" | "_filename"
+>;
+
+export interface Change {
+  objectType: string;
+  id: string;
+  field: string;
+  value: ObjectValue;
+  index?: number;
 }
 
 export interface Objects {
@@ -53,6 +75,13 @@ export interface ErrorData {
   message: string;
 }
 
+export interface SyncData {
+  userInfo: Github.User;
+  changes: Change[];
+  accessToken: string;
+  description?: string;
+}
+
 export type GitWorkerDataType<T extends GitWorkerOperation> =
   T extends GitWorkerOperation.objects
     ? ObjectsData
@@ -62,6 +91,8 @@ export type GitWorkerDataType<T extends GitWorkerOperation> =
     ? ProgressInfo
     : T extends GitWorkerOperation.error
     ? ErrorData
+    : T extends GitWorkerOperation.sync
+    ? SyncData
     : never;
 
 export type GitWorkerDataContainer = {
@@ -85,6 +116,34 @@ export namespace Github {
     avatar_url: string;
     gravatar_id: string;
     url: string;
+    type?: string;
+    site_admin?: boolean;
+    name?: string;
+    company?: string;
+    blog?: string;
+    location?: string;
+    email?: string;
+    hireable?: boolean;
+    bio?: string;
+    twitter_username?: string;
+    public_repos?: number;
+    public_gists?: number;
+    followers?: number;
+    following?: number;
+    created_at?: string;
+    updated_at?: string;
+    private_gists?: number;
+    total_private_repos?: number;
+    owned_private_repos?: number;
+    disk_usage?: number;
+    collaborators?: number;
+    two_factor_authentication?: boolean;
+    plan?: {
+      name: string;
+      space: number;
+      private_repos: number;
+      collaborators: number;
+    };
   }
   export interface License {
     key: string;

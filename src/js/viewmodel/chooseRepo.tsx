@@ -4,6 +4,7 @@ import EditorModel from "../model/editor";
 import ChooseRepoView from "../chooseRepoView";
 import { v4 as uuidv4 } from "uuid";
 import { runInAction } from "mobx";
+import { Github } from "../types";
 
 const CONFIG = {
   authURL: "https://github.com/login/oauth/authorize",
@@ -14,10 +15,8 @@ const CONFIG = {
 
 const ChooseRepoVM = observer<{ editorModel: EditorModel }>(
   ({ editorModel }) => {
-    const setRepoURL = useCallback((url: string) => {
-      runInAction(() => {
-        editorModel.repoURL = url;
-      });
+    const setRepo = useCallback((repo: Github.Repo) => {
+      editorModel.setRepo(repo);
       if (!editorModel.authenticated) {
         const newURL = `${CONFIG.authURL}?redirect_uri=${encodeURIComponent(
           CONFIG.redirectURI
@@ -31,8 +30,7 @@ const ChooseRepoVM = observer<{ editorModel: EditorModel }>(
       <ChooseRepoView
         refreshRepos={editorModel.refreshRepos}
         repoList={editorModel.repoList}
-        initialRepoURL={editorModel.repoURL}
-        setRepoURL={setRepoURL}
+        setRepo={setRepo}
       />
     );
   }

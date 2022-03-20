@@ -21,27 +21,34 @@
   "devDependencies": {
     "@netlify/functions": "^1.0.0",
     "@parcel/transformer-sass": "^2.3.2",
+    "@types/lodash.clonedeep": "^4.5.6",
     "@types/node": "^14.18.12",
     "@types/pluralize": "^0.0.29",
     "@types/react": "^17.0.39",
     "@types/react-dom": "^17.0.11",
+    "@types/ungap__structured-clone": "^0.3.0",
     "@types/uuid": "^8.3.4",
     "buffer": "^6.0.3",
+    "events": "^3.3.0",
     "netlify-cli": "^9.8.0",
     "parcel": "^2.3.2",
     "process": "^0.11.10",
+    "stream-browserify": "^3.0.0",
     "typescript": "^4.5.5"
   },
   "dependencies": {
+    "@iarna/toml": "^2.2.5",
     "@isomorphic-git/lightning-fs": "jesseditson/lightning-fs#include_types_in_npm",
+    "@ungap/structured-clone": "^0.3.4",
     "isomorphic-git": "^1.12.0",
+    "lodash.clonedeep": "^4.5.0",
     "mobx": "^6.4.1",
     "mobx-react-lite": "^3.3.0",
     "pluralize": "^8.0.0",
     "query-string": "^7.1.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "toml": "^3.0.0",
+    "react-feather": "^2.0.9",
     "uuid": "^8.3.2"
   }
 }

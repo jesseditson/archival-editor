@@ -6,6 +6,7 @@ interface StringEditorProps extends EditorProps<string> {}
 const StringEditor: FC<StringEditorProps> = ({
   initialValue,
   field,
+  disabled,
   onUpdate,
 }) => {
   const [value, setValue] = useState(initialValue);
@@ -13,10 +14,11 @@ const StringEditor: FC<StringEditorProps> = ({
     <div className="string-editor">
       <input
         value={value}
+        disabled={disabled}
         onChange={(e) => setValue(e.target.value)}
         placeholder={field}
       />
-      <button onClick={() => onUpdate(value)}>Save</button>
+      {!disabled && <button onClick={() => onUpdate(value)}>Save</button>}
     </div>
   );
 };

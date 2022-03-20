@@ -3,7 +3,7 @@ import ReactDOM from "react-dom";
 import EditorVM from "./viewmodel/editor";
 import EditorModel, { onPersist } from "./model/editor";
 import ChooseRepoVM from "./viewmodel/chooseRepo";
-import { autorun } from "mobx";
+import { autorun, toJS } from "mobx";
 import { observer } from "mobx-react-lite";
 
 const Content = observer<{ editorModel: EditorModel }>(({ editorModel }) => {
@@ -30,7 +30,7 @@ const App: FC = () => {
       localStorage.setItem("editorModel", serialized);
     });
     autorun(() => {
-      console.log(editorModel);
+      console.log(toJS(editorModel));
     });
   }, [editorModel]);
   return <Content editorModel={editorModel} />;

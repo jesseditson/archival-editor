@@ -9,8 +9,9 @@ import {
 export interface EditorProps<T extends ObjectValue> {
   definition: ObjectDefinition;
   object: ObjectData;
-  onUpdate: (value: T) => Promise<ValidationError>;
+  onUpdate: (value: T) => Promise<ValidationError | void>;
   field: string;
+  disabled: boolean;
   type: ScalarType;
   initialValue: T;
 }

@@ -7,17 +7,14 @@ const ARCHIVAL_WEBSITE_TEMPLATE_NODE_ID = "R_kgDOGX83rQ";
 interface ChooseRepoViewProps {
   refreshRepos: () => void;
   repoList: Github.Repo[];
-  initialRepoURL: string;
   setRepo: (repo: Github.Repo) => void;
 }
 
 const ChooseRepoView: FC<ChooseRepoViewProps> = ({
   repoList,
   refreshRepos,
-  initialRepoURL,
   setRepo,
 }) => {
-  const [repoURL, updateRepoURL] = useState<string>(initialRepoURL);
   const [showAll, setShowAll] = useState<boolean>(false);
   const [showForks, setShowForks] = useState<boolean>(false);
   const toggleShowAll = useCallback(
@@ -34,12 +31,6 @@ const ChooseRepoView: FC<ChooseRepoViewProps> = ({
   );
   const repos = useMemo(() => {
     return repoList.filter((repo) => {
-      if (
-        repo.name === "christianreynoso.com" ||
-        repo.name === "archival-website"
-      ) {
-        console.log(toJS(repo));
-      }
       if (
         // TODO: this doesn't seem to be returned :(
         repo.template_repository &&
@@ -98,12 +89,6 @@ const ChooseRepoView: FC<ChooseRepoViewProps> = ({
           </li>
         ))}
       </ul>
-      {/* <input
-        onChange={(t) => updateRepoURL(t.target.value)}
-        placeholder="repo URL"
-        value={repoURL}
-      />
-      <button onClick={() => setRepoURL(repoURL)}>Choose</button> */}
     </div>
   );
 };

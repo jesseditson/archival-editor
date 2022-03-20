@@ -1,15 +1,26 @@
 import React, { FC, useState } from "react";
 import RepoView from "./repoView";
-import { Objects, ObjectTypes, ProgressInfo } from "./types";
+import {
+  Change,
+  Github,
+  Objects,
+  ObjectTypes,
+  ProgressInfo,
+  ValidationError,
+} from "./types";
 
 interface EditorViewProps {
   cloned: boolean;
   cloning: boolean;
-  repoURL: string;
+  repo: Github.Repo;
   branch: string;
   progress: ProgressInfo | null;
   objectTypes?: ObjectTypes;
   objects?: Objects;
+  onUpdate: (change: Change) => Promise<ValidationError | void>;
+  syncing: boolean;
+  hasUnsyncedChanges: boolean;
+  onSync: () => Promise<void>;
   cloneRepo: (branch: string) => void;
   reset: () => void;
 }
@@ -53,23 +64,35 @@ const EditorView: FC<EditorViewProps> = ({
   branch,
   cloned,
   cloning,
-  repoURL,
+  repo,
   cloneRepo,
   progress,
   reset,
   objects,
   objectTypes,
+  onUpdate,
+  onSync,
+  syncing,
+  hasUnsyncedChanges,
 }) => {
   return (
     <div className="editor">
-      <span>repo: {repoURL}</span>
+      <span>repo: {repo.name}</span>
       <button onClick={reset}>Reset</button>
+      {hasUnsyncedChanges && (
+        <>
+          <span>Changes Not Published</span>
+          <button onClick={onSync}>Publish</button>
+        </>
+      )}
       {cloned ? (
         <RepoView
           branch={branch}
-          repoURL={repoURL}
+          syncing={syncing}
+          repo={repo}
           objects={objects}
           objectTypes={objectTypes}
+          onUpdate={onUpdate}
         />
       ) : (
         <CloneView

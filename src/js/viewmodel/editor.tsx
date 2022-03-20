@@ -6,7 +6,7 @@ import EditorView from "../editorView";
 const EditorVM = observer<{ editorModel: EditorModel }>(({ editorModel }) => {
   return (
     <EditorView
-      repoURL={editorModel.repoURL}
+      repo={editorModel.repo!}
       branch={editorModel.branch}
       cloneRepo={editorModel.cloneRepo}
       progress={editorModel.progressInfo}
@@ -15,6 +15,10 @@ const EditorVM = observer<{ editorModel: EditorModel }>(({ editorModel }) => {
       reset={editorModel.reset}
       objectTypes={editorModel.objects?.types}
       objects={editorModel.objects?.objects}
+      onUpdate={editorModel.onUpdate}
+      syncing={editorModel.syncing}
+      onSync={editorModel.sync}
+      hasUnsyncedChanges={editorModel.hasUnsyncedChanges}
     />
   );
 });
