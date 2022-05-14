@@ -7,7 +7,7 @@ import {
   ValidationError,
 } from "./types";
 import editors from "./editors";
-import { toJS } from "mobx";
+import styled from "@emotion/styled";
 
 interface EditFieldViewProps {
   definition: ObjectDefinition;
@@ -19,6 +19,10 @@ interface EditFieldViewProps {
   onUpdate: (value: ObjectValue) => Promise<ValidationError | void>;
 }
 
+const Field = styled.div`
+  margin-bottom: 0.5em;
+`;
+
 export const EditFieldView: FC<EditFieldViewProps> = ({
   definition,
   object,
@@ -28,20 +32,25 @@ export const EditFieldView: FC<EditFieldViewProps> = ({
   value,
   onUpdate,
 }) => {
-  const Editor = editors[toJS(type)];
-  if (Editor) {
-    return (
-      <Editor
-        definition={definition}
-        object={object}
-        field={field}
-        disabled={disabled}
-        type={type}
-        initialValue={value}
-        onUpdate={onUpdate}
-      />
-    );
-  } else {
-    return <span className="no-editor">No editor for type {toJS(type)}.</span>;
-  }
+  const Editor = editors[type];
+  return (
+    <Field>
+      <label>{field}:</label>
+      {Editor ? (
+        <Editor
+          definition={definition}
+          object={object}
+          field={field}
+          disabled={disabled}
+          type={type}
+          initialValue={value}
+          onUpdate={onUpdate}
+        />
+      ) : (
+        <span className="no-editor">
+          No editor for type {type || "undefined"}.
+        </span>
+      )}
+    </Field>
+  );
 };

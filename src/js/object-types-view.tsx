@@ -1,6 +1,6 @@
 import { FC } from "react";
 import pluralize from "pluralize";
-import { ObjectDefinition, Objects, ObjectTypes } from "./types";
+import { Objects, ObjectTypes } from "./types";
 import styled from "@emotion/styled";
 import { ArrowRight } from "react-feather";
 import {

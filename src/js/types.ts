@@ -23,7 +23,7 @@ export interface ProgressInfo {
 export type ScalarType = "string" | "markdown" | string;
 
 export interface ObjectDefinition {
-  [key: string]: ScalarType;
+  [key: string]: ScalarType | ObjectDefinition[];
 }
 
 export interface ObjectTypes {
@@ -37,11 +37,13 @@ export type ObjectValue =
   | ObjectArrayValue
   | ObjectArrayValue[];
 
-export interface ObjectData {
+export interface ObjectChildData {
+  [key: string]: ObjectValue | ObjectChildData[];
+}
+export interface ObjectData extends ObjectChildData {
   _filename: string;
   _name: string;
   _id: string;
-  [key: string]: ObjectValue;
 }
 
 export type ContentAddressableObjectData = Omit<ObjectData, "_id">;

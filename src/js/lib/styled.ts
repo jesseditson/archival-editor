@@ -41,3 +41,16 @@ export const RoundedListNavContainer = styled.div`
   align-items: center;
   width: 3em;
 `;
+
+export const EditList = styled.ol`
+  display: flex;
+  flex-direction: column;
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+`;
+
+export const EditListField = styled.div`
+  & label {
+  }
+`;

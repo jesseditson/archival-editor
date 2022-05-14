@@ -140,7 +140,6 @@ export const EditorView: FC<EditorViewProps> = ({
       ) : null}
       {showingType && showingObject ? (
         <ObjectView
-          type={showingType}
           definition={objectTypes![showingType]}
           object={showingObject}
           syncing={syncing}
