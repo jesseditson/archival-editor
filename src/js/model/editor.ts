@@ -70,6 +70,7 @@ export default class Editor {
       this.repo = repo;
       this.branch = repo.default_branch;
     });
+    this.cloneRepo(this.branch);
   };
 
   public cloneRepo = async (branch?: string) => {

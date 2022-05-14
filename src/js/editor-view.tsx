@@ -1,13 +1,21 @@
-import React, { FC, useState } from "react";
-import RepoView from "./repo-view";
+import styled from "@emotion/styled";
+import React, { FC, useCallback, useState } from "react";
+import { ArrowLeft, Settings } from "react-feather";
+import { EditorContainer } from "./lib/styled";
+import { ObjectView } from "./object-view";
+import { ObjectTypesView } from "./object-types-view";
 import {
   Change,
   Github,
+  ObjectData,
+  ObjectDefinition,
   Objects,
   ObjectTypes,
   ProgressInfo,
   ValidationError,
 } from "./types";
+import { ObjectsView } from "./objects-view";
+import { toJS } from "mobx";
 
 interface EditorViewProps {
   cloned: boolean;
@@ -25,22 +33,35 @@ interface EditorViewProps {
   reset: () => void;
 }
 
-interface CloneViewProps {
+const SettingsViewContainer = styled.div``;
+const SettingsHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+`;
+
+interface SettingsViewProps {
   cloning: boolean;
   branch: string;
+  onReset: () => void;
+  onDismiss: () => void;
   cloneRepo: (branch: string) => void;
   progress: ProgressInfo | null;
 }
 
-const CloneView: FC<CloneViewProps> = ({
+const SettingsView: FC<SettingsViewProps> = ({
   branch: initialBranch,
   cloning,
   cloneRepo,
   progress,
+  onReset,
+  onDismiss,
 }) => {
   const [branch, updateBranch] = useState(initialBranch);
   return (
-    <>
+    <SettingsViewContainer>
+      <SettingsHeader>
+        <ArrowLeft onClick={onDismiss} /> Settings
+      </SettingsHeader>
       {cloning ? null : (
         <input
           value={branch}
@@ -56,9 +77,15 @@ const CloneView: FC<CloneViewProps> = ({
           {progress.task}: {Math.round(progress.progress * 100)}%
         </span>
       ) : null}
-    </>
+      <button onClick={onReset}>Reset</button>
+    </SettingsViewContainer>
   );
 };
+
+const HeaderContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+`;
 
 export const EditorView: FC<EditorViewProps> = ({
   branch,
@@ -75,33 +102,76 @@ export const EditorView: FC<EditorViewProps> = ({
   syncing,
   hasUnsyncedChanges,
 }) => {
+  const [showingSettings, setShowingSettings] = useState(false);
+  const [showingType, setShowingType] = useState<string | null>();
+  const [showingObject, setShowingObject] = useState<ObjectData | null>(null);
+  const goHome = useCallback(() => {
+    setShowingType(null);
+    setShowingObject(null);
+  }, []);
+  if (showingSettings) {
+    return (
+      <SettingsView
+        onDismiss={() => setShowingSettings(false)}
+        onReset={reset}
+        branch={branch}
+        cloning={cloning}
+        cloneRepo={cloneRepo}
+        progress={progress}
+      />
+    );
+  }
+  console.log(toJS(showingType));
   return (
-    <div className="editor">
-      <span>repo: {repo.name}</span>
-      <button onClick={reset}>Reset</button>
+    <EditorContainer>
+      <HeaderContainer>
+        <h1 onClick={goHome}>{repo.name}</h1>
+        <Settings onClick={() => setShowingSettings(true)} />
+      </HeaderContainer>
       {hasUnsyncedChanges && (
         <>
           <span>Changes Not Published</span>
           <button onClick={onSync}>Publish</button>
         </>
       )}
-      {cloned ? (
-        <RepoView
-          branch={branch}
+      {progress ? (
+        <span>
+          {progress.task}: {Math.round(progress.progress * 100)}%
+        </span>
+      ) : null}
+      {showingType && showingObject ? (
+        <ObjectView
+          type={showingType}
+          definition={objectTypes![showingType]}
+          object={showingObject}
           syncing={syncing}
-          repo={repo}
+          onUpdate={(field, value, index) =>
+            onUpdate({
+              objectType: showingType,
+              id: showingObject._id,
+              field,
+              value,
+              index,
+            })
+          }
+          onDismiss={() => setShowingObject(null)}
+        />
+      ) : null}
+      {showingType && !showingObject ? (
+        <ObjectsView
+          objects={objects && objects[showingType]}
+          type={showingType}
+          onShowObject={setShowingObject}
+          onDismiss={goHome}
+        />
+      ) : null}
+      {!showingObject && !showingType && cloned ? (
+        <ObjectTypesView
           objects={objects}
-          objectTypes={objectTypes}
-          onUpdate={onUpdate}
+          types={objectTypes}
+          onShowType={setShowingType}
         />
-      ) : (
-        <CloneView
-          branch={branch}
-          cloning={cloning}
-          cloneRepo={cloneRepo}
-          progress={progress}
-        />
-      )}
-    </div>
+      ) : null}
+    </EditorContainer>
   );
 };

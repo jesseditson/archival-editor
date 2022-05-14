@@ -7,6 +7,7 @@ import {
   ValidationError,
 } from "./types";
 import editors from "./editors";
+import { toJS } from "mobx";
 
 interface EditFieldViewProps {
   definition: ObjectDefinition;
@@ -27,7 +28,9 @@ export const EditFieldView: FC<EditFieldViewProps> = ({
   value,
   onUpdate,
 }) => {
-  const Editor = editors[type];
+  console.log(toJS(type));
+  const Editor = editors[toJS(type)];
+  console.log(Editor, type);
   if (Editor) {
     return (
       <Editor
@@ -41,6 +44,6 @@ export const EditFieldView: FC<EditFieldViewProps> = ({
       />
     );
   } else {
-    return <span className="no-editor">No editor for type {type}.</span>;
+    return <span className="no-editor">No editor for type {toJS(type)}.</span>;
   }
 };
