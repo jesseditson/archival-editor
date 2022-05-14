@@ -60,7 +60,7 @@ const CloneView: FC<CloneViewProps> = ({
   );
 };
 
-const EditorView: FC<EditorViewProps> = ({
+export const EditorView: FC<EditorViewProps> = ({
   branch,
   cloned,
   cloning,
@@ -105,5 +105,3 @@ const EditorView: FC<EditorViewProps> = ({
     </div>
   );
 };
-
-export default EditorView;

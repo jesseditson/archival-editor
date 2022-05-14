@@ -20,6 +20,13 @@ import {
   ValidationError,
 } from "../types";
 
+const CONFIG = {
+  authURL: "https://github.com/login/oauth/authorize",
+  redirectURI: process.env.GITHUB_REDIRECT_URI!,
+  clientID: process.env.GITHUB_CLIENT_ID!,
+  scopes: ["repo"],
+};
+
 const waitingPromises: Map<string, Function> = new Map();
 export default class Editor {
   githubAuth: GithubAuth | null = null;
@@ -37,6 +44,10 @@ export default class Editor {
   syncing: boolean = false;
   errors: ErrorData[] = [];
 
+  get loggedIn(): boolean {
+    return !!this.githubClient;
+  }
+
   get authenticated(): boolean {
     return !!this.repo && !!this.githubAuth;
   }
@@ -44,6 +55,15 @@ export default class Editor {
   get hasUnsyncedChanges(): boolean {
     return this.changes.length > 0;
   }
+
+  public openLogin = () => {
+    const newURL = `${CONFIG.authURL}?redirect_uri=${encodeURIComponent(
+      CONFIG.redirectURI
+    )}&client_id=${CONFIG.clientID}&scope=${CONFIG.scopes.join(
+      " "
+    )}&state=${uuidv4()}`;
+    window.location.href = newURL;
+  };
 
   public setRepo = (repo: Github.Repo) => {
     runInAction(() => {
@@ -120,8 +140,12 @@ export default class Editor {
     if (!this.githubClient) {
       throw new Error("Not Logged In");
     }
+    runInAction(() => {
+      this.progressInfo = { task: "Loading Repositories...", progress: -1 };
+    });
     const repoList = await this.githubClient.allUserRepos();
     runInAction(() => {
+      this.progressInfo = null;
       this.repoList = repoList;
     });
   };
@@ -133,6 +157,7 @@ export default class Editor {
       repo: observable,
       branch: observable,
       authenticated: computed,
+      loggedIn: computed,
       cloning: observable,
       cloned: observable,
       progressInfo: observable,
@@ -142,7 +167,7 @@ export default class Editor {
     });
     const query = new URLSearchParams(queryString);
     if (this.loadAuth(path, query)) {
-      window.location.replace("/");
+      setTimeout(() => window.location.replace("/"), 500);
     } else if (serialized) {
       const init = JSON.parse(serialized);
       this.userInfo = init.userInfo;

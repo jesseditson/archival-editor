@@ -1,15 +1,29 @@
+import styled from "@emotion/styled";
 import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
-import { Github } from "./types";
+import { Loader } from "react-feather";
+import { EditorContainer } from "./lib/styled";
+import { Github, ProgressInfo } from "./types";
 
 const ARCHIVAL_WEBSITE_TEMPLATE_NODE_ID = "R_kgDOGX83rQ";
 
 interface ChooseRepoViewProps {
+  progressInfo: ProgressInfo | null;
   refreshRepos: () => void;
   repoList: Github.Repo[];
   setRepo: (repo: Github.Repo) => void;
 }
 
+const Filters = styled.fieldset`
+  font-size: 1em;
+`;
+const RepoList = styled.ul`
+  font-size: 1em;
+  list-style-type: none;
+  padding-left: 0;
+`;
+
 export const ChooseRepoView: FC<ChooseRepoViewProps> = ({
+  progressInfo,
   repoList,
   refreshRepos,
   setRepo,
@@ -51,18 +65,22 @@ export const ChooseRepoView: FC<ChooseRepoViewProps> = ({
     });
   }, [repoList, showForks, showAll]);
   useEffect(() => {
-    if (repos.length === 0) {
-      setShowAll(true);
-    }
-  }, [repos.length]);
-  useEffect(() => {
     if (repoList.length === 0) {
       refreshRepos();
     }
   }, [repoList]);
+  if (progressInfo?.task) {
+    return (
+      <EditorContainer>
+        {progressInfo.task}
+        <Loader />
+      </EditorContainer>
+    );
+  }
   return (
-    <div className="editor">
-      <fieldset className="filters">
+    <EditorContainer>
+      <h1>Choose a Website</h1>
+      <Filters>
         {repos.length && (
           <label>
             Show All:{" "}
@@ -79,15 +97,15 @@ export const ChooseRepoView: FC<ChooseRepoViewProps> = ({
             />
           </label>
         )}
-      </fieldset>
-      <ul className="repo-list">
+      </Filters>
+      <RepoList>
         {repos.map((repo) => (
           <li key={repo.node_id} className="repo" onClick={() => setRepo(repo)}>
             <h3>{repo.name}</h3>
             {repo.template_repository}
           </li>
         ))}
-      </ul>
-    </div>
+      </RepoList>
+    </EditorContainer>
   );
 };
