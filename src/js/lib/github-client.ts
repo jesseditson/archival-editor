@@ -18,7 +18,7 @@ type JSONValue =
 
 type HTTPMethod = "GET";
 
-export default class GithubClient {
+export class GithubClient {
   private auth: GithubAuth;
 
   public allUserRepos = async () => {

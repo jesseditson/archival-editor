@@ -7,7 +7,7 @@ import {
   toJS,
 } from "mobx";
 import { v4 as uuidv4 } from "uuid";
-import GithubClient, { GithubAuth } from "../lib/github-client";
+import { GithubAuth, GithubClient } from "../lib/github-client";
 import {
   Change,
   ErrorData,
