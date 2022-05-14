@@ -28,9 +28,7 @@ export const EditFieldView: FC<EditFieldViewProps> = ({
   value,
   onUpdate,
 }) => {
-  console.log(toJS(type));
   const Editor = editors[toJS(type)];
-  console.log(Editor, type);
   if (Editor) {
     return (
       <Editor

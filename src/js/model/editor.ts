@@ -248,8 +248,10 @@ export default class Editor {
           this.errors.push(error!);
         });
         return;
+      default:
+        console.log(message.data);
+        return;
     }
-    console.log(message.data);
   };
 
   private perform = <T extends GitWorkerOperation>(

@@ -121,7 +121,6 @@ export const EditorView: FC<EditorViewProps> = ({
       />
     );
   }
-  console.log(toJS(showingType));
   return (
     <EditorContainer>
       <HeaderContainer>

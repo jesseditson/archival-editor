@@ -39,7 +39,6 @@ export const handler: Handler = async (event, context) => {
       });
       res.on("end", () => {
         if (res.statusCode !== 200) {
-          console.log(responseStr);
           return resolve({
             statusCode: 302,
             headers: {
