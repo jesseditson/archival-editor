@@ -3,7 +3,7 @@ import { EditorProps } from "./types";
 
 interface StringEditorProps extends EditorProps<string> {}
 
-const StringEditor: FC<StringEditorProps> = ({
+export const StringEditor: FC<StringEditorProps> = ({
   initialValue,
   field,
   disabled,
@@ -22,5 +22,3 @@ const StringEditor: FC<StringEditorProps> = ({
     </div>
   );
 };
-
-export default StringEditor;
