@@ -1,5 +1,5 @@
 import React, { FC, useState } from "react";
-import RepoView from "./repoView";
+import RepoView from "./repo-view";
 import {
   Change,
   Github,

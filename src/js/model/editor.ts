@@ -151,9 +151,12 @@ export default class Editor {
       this.githubAuth = init.githubAuth;
       this.cloned = init.cloned;
     }
-    this.worker = new Worker(new URL("../git-worker.ts", import.meta.url), {
-      type: "module",
-    });
+    this.worker = new Worker(
+      new URL("../worker/git-worker.ts", import.meta.url),
+      {
+        type: "module",
+      }
+    );
     this.worker.onmessageerror = (error) => {
       console.error(error);
     };

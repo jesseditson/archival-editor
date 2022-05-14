@@ -1,8 +1,8 @@
 import React, { FC, useCallback, useEffect } from "react";
 import ReactDOM from "react-dom";
-import EditorVM from "./viewmodel/editor";
+import { EditorVM } from "./viewmodel/editor";
 import EditorModel, { onPersist } from "./model/editor";
-import ChooseRepoVM from "./viewmodel/chooseRepo";
+import { ChooseRepoVM } from "./viewmodel/choose-repo";
 import { autorun, toJS } from "mobx";
 import { observer } from "mobx-react-lite";
 

@@ -1,9 +1,8 @@
 import React, { useCallback } from "react";
 import { observer } from "mobx-react-lite";
 import EditorModel from "../model/editor";
-import ChooseRepoView from "../chooseRepoView";
+import { ChooseRepoView } from "../choose-repo-view";
 import { v4 as uuidv4 } from "uuid";
-import { runInAction } from "mobx";
 import { Github } from "../types";
 
 const CONFIG = {
@@ -13,7 +12,7 @@ const CONFIG = {
   scopes: ["repo"],
 };
 
-const ChooseRepoVM = observer<{ editorModel: EditorModel }>(
+export const ChooseRepoVM = observer<{ editorModel: EditorModel }>(
   ({ editorModel }) => {
     const setRepo = useCallback((repo: Github.Repo) => {
       editorModel.setRepo(repo);
@@ -35,4 +34,3 @@ const ChooseRepoVM = observer<{ editorModel: EditorModel }>(
     );
   }
 );
-export default ChooseRepoVM;

@@ -20,7 +20,7 @@ import {
   ObjectValue,
   WriteableObjectData,
   ObjectTypes,
-} from "./types";
+} from "../types";
 
 const PROXY_URL = process.env.PROXY_URL;
 const DEFAULT_COMMIT_MSG =

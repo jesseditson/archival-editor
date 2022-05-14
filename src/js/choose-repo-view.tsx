@@ -1,4 +1,3 @@
-import { toJS } from "mobx";
 import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import { Github } from "./types";
 
@@ -10,7 +9,7 @@ interface ChooseRepoViewProps {
   setRepo: (repo: Github.Repo) => void;
 }
 
-const ChooseRepoView: FC<ChooseRepoViewProps> = ({
+export const ChooseRepoView: FC<ChooseRepoViewProps> = ({
   repoList,
   refreshRepos,
   setRepo,
@@ -92,5 +91,3 @@ const ChooseRepoView: FC<ChooseRepoViewProps> = ({
     </div>
   );
 };
-
-export default ChooseRepoView;
