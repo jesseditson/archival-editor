@@ -39,7 +39,7 @@ export const EditFieldView: FC<EditFieldViewProps> = ({
   fieldId,
 }) => {
   const Editor = editors[type];
-  const cid = changeId(object, fieldId || field);
+  const cid = changeId(object._id, fieldId || field);
   const change = changedFields.get(cid);
   return (
     <Field>

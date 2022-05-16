@@ -1,19 +1,14 @@
 import { FC, useCallback } from "react";
 import pluralize from "pluralize";
-import { ObjectData, ObjectDefinition, Objects, ObjectTypes } from "./types";
-import {
-  PageHeader,
-  PageHeaderAccessory,
-  RoundedList,
-  RoundedListNavContainer,
-  RoundedListRow,
-} from "./lib/styled";
+import { ObjectData, ValidationError } from "./types";
+import { PageHeader, RoundedList, RoundedListRow } from "./lib/styled";
 import { ArrowLeft, ArrowRight, PlusCircle } from "react-feather";
 
 interface ObjectsViewProps {
   type: string;
   objects?: ObjectData[];
   onShowObject: (object: ObjectData) => void;
+  onAddObject: () => Promise<(ValidationError | void)[]>;
   onDismiss: () => void;
 }
 
@@ -22,13 +17,14 @@ export const ObjectsView: FC<ObjectsViewProps> = ({
   objects,
   onDismiss,
   onShowObject,
+  onAddObject,
 }) => {
   return (
     <>
       <PageHeader>
         <ArrowLeft onClick={onDismiss} />
         <h2>{pluralize(type)}</h2>
-        <PlusCircle />
+        <PlusCircle onClick={onAddObject} />
       </PageHeader>
       {objects ? (
         <RoundedList>

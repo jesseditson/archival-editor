@@ -8,6 +8,7 @@ import {
   Change,
   Github,
   ObjectData,
+  ObjectDefinition,
   Objects,
   ObjectTypes,
   ProgressInfo,
@@ -25,6 +26,15 @@ interface EditorViewProps {
   objectTypes?: ObjectTypes;
   objects?: Objects;
   onUpdate: (change: Change) => Promise<ValidationError | void>;
+  onAddObject: (
+    object: ObjectDefinition
+  ) => Promise<(ValidationError | void)[]>;
+  onAddChild: (
+    object: ObjectDefinition,
+    parentId: string,
+    index: number,
+    field: string
+  ) => Promise<(ValidationError | void)[]>;
   resetChanges: () => Promise<void>;
   syncing: boolean;
   hasUnsyncedChanges: boolean;
@@ -153,6 +163,8 @@ export const EditorView: FC<EditorViewProps> = ({
   objects,
   objectTypes,
   onUpdate,
+  onAddChild,
+  onAddObject,
   onSync,
   syncing,
   hasUnsyncedChanges,
@@ -202,6 +214,7 @@ export const EditorView: FC<EditorViewProps> = ({
               index,
             })
           }
+          onAddChild={onAddChild}
           onDismiss={() => setShowingObject(null)}
         />
       ) : null}
@@ -210,6 +223,7 @@ export const EditorView: FC<EditorViewProps> = ({
           objects={objects && objects[showingType]}
           type={showingType}
           onShowObject={setShowingObject}
+          onAddObject={() => onAddObject(objectTypes![showingType])}
           onDismiss={goHome}
         />
       ) : null}

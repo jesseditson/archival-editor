@@ -1,7 +1,12 @@
-import { Change, ObjectData } from "../types";
+import { Change } from "../types";
 
-export const childId = (parent: string, index: number, child: string) =>
+export const childChangeId = (parent: string, index: number, child: string) =>
   `${parent}.${index}.${child}`;
 
-export const changeId = (o: Change | ObjectData, f?: string) =>
-  f ? `${(o as ObjectData)._id}#${f}` : `${o.id}#${o.field}`;
+export const changeId = (o: Change | string, f?: string) =>
+  f ? `${o as string}#${f}` : `${(o as Change).id}#${(o as Change).field}`;
+
+export const DEFAULT_VALUES = {
+  string: "",
+  markdown: "",
+};

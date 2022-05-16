@@ -8,7 +8,7 @@ import {
 } from "mobx";
 import { v4 as uuidv4 } from "uuid";
 import { GithubAuth, GithubClient } from "../lib/github-client";
-import { changeId } from "../lib/util";
+import { changeId, childChangeId, DEFAULT_VALUES } from "../lib/util";
 import {
   Change,
   ErrorData,
@@ -16,6 +16,7 @@ import {
   GitWorkerDataType,
   GitWorkerMessage,
   GitWorkerOperation,
+  ObjectDefinition,
   ObjectsData,
   ProgressInfo,
   ValidationError,
@@ -40,7 +41,7 @@ export default class Editor {
   cloned: boolean = false;
   progressInfo: ProgressInfo | null = null;
   worker: Worker;
-  objects: ObjectsData | null = null;
+  gitObjects: ObjectsData | null = null;
   changes: Change[] = [];
   syncing: boolean = false;
   errors: ErrorData[] = [];
@@ -59,6 +60,13 @@ export default class Editor {
 
   get changedFields(): Map<string, Change> {
     return new Map(this.changes.map((c) => [changeId(c), c]));
+  }
+
+  get objects(): ObjectsData | null {
+    const objects = this.gitObjects;
+    // TODO: add objects only visible in changes
+    // this.changes.forEach()
+    return objects;
   }
 
   public openLogin = () => {
@@ -100,6 +108,54 @@ export default class Editor {
 
   public refreshObjects = () => {
     this.perform(GitWorkerOperation.refreshObjects);
+  };
+
+  public onAddObject = async (
+    object: ObjectDefinition
+  ): Promise<(ValidationError | void)[]> => {
+    if (this.syncing) {
+      throw new Error("Cannot add a child while syncing.");
+    }
+    const objectId = uuidv4();
+    const changes = Object.keys(object).map((field) => {
+      const change: Change = {
+        id: changeId(objectId, field),
+        objectType: object._name as string,
+        field: field,
+        value: DEFAULT_VALUES[object[field] as keyof typeof DEFAULT_VALUES],
+      };
+      return change;
+    });
+    const values = await Promise.allSettled(changes.map(this.onUpdate));
+    return values
+      .filter((v) => v.status === "fulfilled")
+      .map((v) => (v as PromiseFulfilledResult<ValidationError | void>).value);
+  };
+
+  public onAddChild = async (
+    object: ObjectDefinition,
+    parentId: string,
+    index: number,
+    field: string
+  ): Promise<(ValidationError | void)[]> => {
+    if (this.syncing) {
+      throw new Error("Cannot add a child while syncing.");
+    }
+    const fields = object[field] as ObjectDefinition[];
+    const changes = Object.keys(fields[0]).map((cf) => {
+      const change: Change = {
+        id: childChangeId(parentId, index, cf),
+        objectType: object._name as string,
+        field: cf,
+        value: DEFAULT_VALUES[fields[0][cf] as keyof typeof DEFAULT_VALUES],
+        index,
+      };
+      return change;
+    });
+    const values = await Promise.allSettled(changes.map(this.onUpdate));
+    return values
+      .filter((v) => v.status === "fulfilled")
+      .map((v) => (v as PromiseFulfilledResult<ValidationError | void>).value);
   };
 
   public onUpdate = async (change: Change): Promise<ValidationError | void> => {
@@ -261,7 +317,7 @@ export default class Editor {
         return;
       case GitWorkerOperation.objects:
         runInAction(() => {
-          this.objects = message.data[GitWorkerOperation.objects] || null;
+          this.gitObjects = message.data[GitWorkerOperation.objects] || null;
         });
         return;
       case GitWorkerOperation.error:

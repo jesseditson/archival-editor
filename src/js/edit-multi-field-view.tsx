@@ -1,8 +1,9 @@
 import styled from "@emotion/styled";
 import { FC } from "react";
+import { PlusCircle } from "react-feather";
 import { EditFieldView } from "./edit-field-view";
 import { EditList, EditListField } from "./lib/styled";
-import { childId } from "./lib/util";
+import { childChangeId } from "./lib/util";
 import {
   Change,
   ObjectChildData,
@@ -21,6 +22,11 @@ interface EditMultiFieldProps {
   type: ObjectDefinition[];
   values: ObjectChildData[];
   changedFields: Map<string, Change>;
+  onAddChild: (
+    parentId: string,
+    index: number,
+    field: string
+  ) => Promise<(ValidationError | void)[]>;
   onUpdate: (
     field: string,
     index: number,
@@ -35,6 +41,10 @@ const FieldContainer = styled.div`
 `;
 const FieldLabel = styled.label`
   font-weight: 700;
+  flex-grow: 1;
+`;
+const FieldHeader = styled.div`
+  display: flex;
 `;
 
 export const EditMultiFieldView: FC<EditMultiFieldProps> = ({
@@ -45,6 +55,7 @@ export const EditMultiFieldView: FC<EditMultiFieldProps> = ({
   type,
   changedFields,
   values,
+  onAddChild,
   onUpdate,
 }) => {
   const childDefinition = (idx: number): ObjectDefinition => {
@@ -54,7 +65,12 @@ export const EditMultiFieldView: FC<EditMultiFieldProps> = ({
   return (
     <FieldContainer>
       <EditList>
-        <FieldLabel>{field}:</FieldLabel>
+        <FieldHeader>
+          <FieldLabel>{field}:</FieldLabel>
+          <PlusCircle
+            onClick={() => onAddChild(object._id, values.length, field)}
+          />
+        </FieldHeader>
         {values.map((value, idx) => (
           <li key={`child-${idx}`}>
             {Object.keys(childDefinition(idx)).map((childField) => (
@@ -68,7 +84,7 @@ export const EditMultiFieldView: FC<EditMultiFieldProps> = ({
                   type={childDefinition(idx)[childField] as ScalarType}
                   value={value[childField] as ObjectValue}
                   onUpdate={(val) => onUpdate(childField, idx, val)}
-                  fieldId={childId(field, idx, childField)}
+                  fieldId={childChangeId(field, idx, childField)}
                 />
               </EditListField>
             ))}

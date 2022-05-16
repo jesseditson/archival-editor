@@ -3,7 +3,7 @@ import { ArrowLeft } from "react-feather";
 import { EditFieldView } from "./edit-field-view";
 import { EditMultiFieldView } from "./edit-multi-field-view";
 import { PageHeader } from "./lib/styled";
-import { childId } from "./lib/util";
+import { childChangeId } from "./lib/util";
 import {
   Change,
   ObjectChildData,
@@ -24,6 +24,11 @@ interface ObjectViewProps {
     value: ObjectValue,
     index?: number
   ) => Promise<ValidationError | void>;
+  onAddChild: (
+    parentId: string,
+    index: number,
+    field: string
+  ) => Promise<(ValidationError | void)[]>;
   onDismiss: () => void;
 }
 
@@ -34,6 +39,7 @@ export const ObjectView: FC<ObjectViewProps> = ({
   changedFields,
   onUpdate,
   onDismiss,
+  onAddChild,
 }) => {
   return (
     <div className="object">
@@ -52,8 +58,9 @@ export const ObjectView: FC<ObjectViewProps> = ({
             disabled={syncing}
             type={definition[field] as ObjectDefinition[]}
             values={object[field] as ObjectChildData[]}
+            onAddChild={onAddChild}
             onUpdate={(childField, index, val) =>
-              onUpdate(childId(field, index, childField), val)
+              onUpdate(childChangeId(field, index, childField), val)
             }
           />
         ) : (
