@@ -1,11 +1,11 @@
-import styled from "@emotion/styled";
-import { toJS } from "mobx";
 import { FC } from "react";
 import { ArrowLeft } from "react-feather";
 import { EditFieldView } from "./edit-field-view";
 import { EditMultiFieldView } from "./edit-multi-field-view";
 import { PageHeader } from "./lib/styled";
+import { childId } from "./lib/util";
 import {
+  Change,
   ObjectChildData,
   ObjectData,
   ObjectDefinition,
@@ -18,6 +18,7 @@ interface ObjectViewProps {
   definition: ObjectDefinition;
   object: ObjectData;
   syncing: boolean;
+  changedFields: Map<string, Change>;
   onUpdate: (
     field: string,
     value: ObjectValue,
@@ -30,10 +31,10 @@ export const ObjectView: FC<ObjectViewProps> = ({
   definition,
   object,
   syncing,
+  changedFields,
   onUpdate,
   onDismiss,
 }) => {
-  console.log(Array.isArray(definition["links"]));
   return (
     <div className="object">
       <PageHeader>
@@ -43,19 +44,25 @@ export const ObjectView: FC<ObjectViewProps> = ({
       {Object.keys(definition).map((field) =>
         Array.isArray(definition[field]) ? (
           <EditMultiFieldView
+            key={field}
             definition={definition}
             object={object}
             field={field}
+            changedFields={changedFields}
             disabled={syncing}
             type={definition[field] as ObjectDefinition[]}
             values={object[field] as ObjectChildData[]}
-            onUpdate={(val) => onUpdate(field, val)}
+            onUpdate={(childField, index, val) =>
+              onUpdate(childId(field, index, childField), val)
+            }
           />
         ) : (
           <EditFieldView
+            key={field}
             definition={definition}
             object={object}
             field={field}
+            changedFields={changedFields}
             disabled={syncing}
             type={definition[field] as ScalarType}
             value={object[field] as ObjectValue}

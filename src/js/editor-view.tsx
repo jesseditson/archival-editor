@@ -8,24 +8,24 @@ import {
   Change,
   Github,
   ObjectData,
-  ObjectDefinition,
   Objects,
   ObjectTypes,
   ProgressInfo,
   ValidationError,
 } from "./types";
 import { ObjectsView } from "./objects-view";
-import { toJS } from "mobx";
 
 interface EditorViewProps {
   cloned: boolean;
   cloning: boolean;
   repo: Github.Repo;
   branch: string;
+  changedFields: Map<string, Change>;
   progress: ProgressInfo | null;
   objectTypes?: ObjectTypes;
   objects?: Objects;
   onUpdate: (change: Change) => Promise<ValidationError | void>;
+  resetChanges: () => Promise<void>;
   syncing: boolean;
   hasUnsyncedChanges: boolean;
   onSync: () => Promise<void>;
@@ -33,10 +33,21 @@ interface EditorViewProps {
   reset: () => void;
 }
 
-const SettingsViewContainer = styled.div``;
+const SettingsViewContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  font-size: 1.2em;
+  & > * {
+    margin-bottom: 1em;
+  }
+`;
 const SettingsHeader = styled.div`
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  h2 {
+    flex-grow: 1;
+    font-size: 1em;
+  }
 `;
 
 interface SettingsViewProps {
@@ -47,6 +58,16 @@ interface SettingsViewProps {
   cloneRepo: (branch: string) => void;
   progress: ProgressInfo | null;
 }
+
+const Button = styled.button`
+  border: 0;
+  border-radius: 5px;
+`;
+
+const ResetButton = styled(Button)`
+  background-color: red;
+  color: white;
+`;
 
 const SettingsView: FC<SettingsViewProps> = ({
   branch: initialBranch,
@@ -60,24 +81,27 @@ const SettingsView: FC<SettingsViewProps> = ({
   return (
     <SettingsViewContainer>
       <SettingsHeader>
-        <ArrowLeft onClick={onDismiss} /> Settings
+        <ArrowLeft onClick={onDismiss} />
+        <h2>Settings</h2>
       </SettingsHeader>
-      {cloning ? null : (
-        <input
-          value={branch}
-          onChange={(e) => updateBranch(e.target.value)}
-          placeholder="branch"
-        />
-      )}
-      {cloning ? null : (
-        <button onClick={() => cloneRepo(branch)}>Clone Repo</button>
-      )}
+      <div>
+        {cloning ? null : (
+          <input
+            value={branch}
+            onChange={(e) => updateBranch(e.target.value)}
+            placeholder="branch"
+          />
+        )}
+        {cloning ? null : (
+          <Button onClick={() => cloneRepo(branch)}>Checkout Branch</Button>
+        )}
+      </div>
       {progress ? (
         <span>
           {progress.task}: {Math.round(progress.progress * 100)}%
         </span>
       ) : null}
-      <button onClick={onReset}>Reset</button>
+      <ResetButton onClick={onReset}>Reset Repository</ResetButton>
     </SettingsViewContainer>
   );
 };
@@ -85,6 +109,35 @@ const SettingsView: FC<SettingsViewProps> = ({
 const HeaderContainer = styled.div`
   display: flex;
   justify-content: space-between;
+`;
+
+const SaveButton = styled(Button)`
+  font-size: 1.2em;
+  padding: 0.2em 0.5em;
+`;
+
+const CancelButton = styled(Button)`
+  font-size: 1.2em;
+  padding: 0.2em 0.5em;
+  background-color: transparent;
+  margin-right: 10px;
+`;
+
+const BottomControls = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  padding: 1em;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: white;
+  align-items: center;
+`;
+
+const SyncedNote = styled.span`
+  color: #333;
+  margin-right: 10px;
 `;
 
 export const EditorView: FC<EditorViewProps> = ({
@@ -95,6 +148,8 @@ export const EditorView: FC<EditorViewProps> = ({
   cloneRepo,
   progress,
   reset,
+  resetChanges,
+  changedFields,
   objects,
   objectTypes,
   onUpdate,
@@ -127,12 +182,6 @@ export const EditorView: FC<EditorViewProps> = ({
         <h1 onClick={goHome}>{repo.name}</h1>
         <Settings onClick={() => setShowingSettings(true)} />
       </HeaderContainer>
-      {hasUnsyncedChanges && (
-        <>
-          <span>Changes Not Published</span>
-          <button onClick={onSync}>Publish</button>
-        </>
-      )}
       {progress ? (
         <span>
           {progress.task}: {Math.round(progress.progress * 100)}%
@@ -143,6 +192,7 @@ export const EditorView: FC<EditorViewProps> = ({
           definition={objectTypes![showingType]}
           object={showingObject}
           syncing={syncing}
+          changedFields={changedFields}
           onUpdate={(field, value, index) =>
             onUpdate({
               objectType: showingType,
@@ -170,6 +220,20 @@ export const EditorView: FC<EditorViewProps> = ({
           onShowType={setShowingType}
         />
       ) : null}
+      <BottomControls>
+        {hasUnsyncedChanges ? (
+          <SyncedNote>
+            {changedFields.size} unsynced change
+            {changedFields.size === 1 ? "" : "s"}
+          </SyncedNote>
+        ) : null}
+        <CancelButton disabled={!hasUnsyncedChanges} onClick={resetChanges}>
+          Reset
+        </CancelButton>
+        <SaveButton disabled={!hasUnsyncedChanges} onClick={onSync}>
+          Publish
+        </SaveButton>
+      </BottomControls>
     </EditorContainer>
   );
 };

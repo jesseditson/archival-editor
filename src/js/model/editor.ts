@@ -8,6 +8,7 @@ import {
 } from "mobx";
 import { v4 as uuidv4 } from "uuid";
 import { GithubAuth, GithubClient } from "../lib/github-client";
+import { changeId } from "../lib/util";
 import {
   Change,
   ErrorData,
@@ -54,6 +55,10 @@ export default class Editor {
 
   get hasUnsyncedChanges(): boolean {
     return this.changes.length > 0;
+  }
+
+  get changedFields(): Map<string, Change> {
+    return new Map(this.changes.map((c) => [changeId(c), c]));
   }
 
   public openLogin = () => {
@@ -103,9 +108,26 @@ export default class Editor {
     }
     // TODO: validate change
     runInAction(() => {
-      this.changes.push(change);
+      if (this.changedFields.has(change.id)) {
+        for (const i in this.changes) {
+          if (this.changes[i].id === change.id) {
+            this.changes[i] = change;
+            break;
+          }
+        }
+      } else {
+        this.changes.push(change);
+      }
     });
     return Promise.resolve();
+  };
+
+  public resetChanges = async (): Promise<void> => {
+    if (this.changedFields.size) {
+      runInAction(() => {
+        this.changes = [];
+      });
+    }
   };
 
   public sync = async () => {
@@ -158,6 +180,7 @@ export default class Editor {
       repo: observable,
       branch: observable,
       authenticated: computed,
+      changedFields: computed,
       loggedIn: computed,
       cloning: observable,
       cloned: observable,

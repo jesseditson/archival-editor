@@ -2,6 +2,7 @@ import styled from "@emotion/styled";
 
 export const EditorContainer = styled.div`
   padding: 1em;
+  margin-bottom: 200px;
 `;
 
 export const PageHeader = styled.div`

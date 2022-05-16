@@ -1,5 +1,6 @@
 import { FC } from "react";
 import {
+  Change,
   ObjectData,
   ObjectDefinition,
   ObjectValue,
@@ -8,6 +9,7 @@ import {
 } from "./types";
 import editors from "./editors";
 import styled from "@emotion/styled";
+import { changeId } from "./lib/util";
 
 interface EditFieldViewProps {
   definition: ObjectDefinition;
@@ -16,7 +18,9 @@ interface EditFieldViewProps {
   disabled: boolean;
   type: ScalarType;
   value: ObjectValue;
+  changedFields: Map<string, Change>;
   onUpdate: (value: ObjectValue) => Promise<ValidationError | void>;
+  fieldId?: string;
 }
 
 const Field = styled.div`
@@ -30,9 +34,13 @@ export const EditFieldView: FC<EditFieldViewProps> = ({
   disabled,
   type,
   value,
+  changedFields,
   onUpdate,
+  fieldId,
 }) => {
   const Editor = editors[type];
+  const cid = changeId(object, fieldId || field);
+  const change = changedFields.get(cid);
   return (
     <Field>
       <label>{field}:</label>
@@ -43,7 +51,8 @@ export const EditFieldView: FC<EditFieldViewProps> = ({
           field={field}
           disabled={disabled}
           type={type}
-          initialValue={value}
+          isUnsaved={changedFields.has(cid)}
+          initialValue={change ? change.value : value}
           onUpdate={onUpdate}
         />
       ) : (
