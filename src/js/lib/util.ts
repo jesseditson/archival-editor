@@ -4,8 +4,8 @@ export const childChangeId = (
   parentId: string,
   parentField: string,
   index: number,
-  child: string
-) => `${parentId}#${parentField}/${index}.${child}`;
+  child?: string
+) => `${parentId}#${parentField}/${index}${child ? `.${child}` : ""}`;
 
 export const changeId = (o: Change | string, f?: string) =>
   f ? `${o as string}#${f}` : `${(o as Change).id}#${(o as Change).field}`;

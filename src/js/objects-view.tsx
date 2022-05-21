@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, PlusCircle } from "react-feather";
 interface ObjectsViewProps {
   type: string;
   objects?: ObjectData[];
-  onShowObject: (object: ObjectData) => void;
+  onShowObjectIndex: (index: number) => void;
   onAddObject: (name: string) => Promise<(ValidationError | void)[]>;
   onDismiss: () => void;
 }
@@ -16,7 +16,7 @@ export const ObjectsView: FC<ObjectsViewProps> = ({
   type,
   objects,
   onDismiss,
-  onShowObject,
+  onShowObjectIndex,
   onAddObject,
 }) => {
   const onAdd = useCallback(() => {
@@ -34,10 +34,10 @@ export const ObjectsView: FC<ObjectsViewProps> = ({
       </PageHeader>
       {objects ? (
         <RoundedList>
-          {(objects || []).map((object) => (
+          {(objects || []).map((object, index) => (
             <RoundedListRow
               key={object._id}
-              onClick={() => onShowObject(object)}
+              onClick={() => onShowObjectIndex(index)}
             >
               <h3>{object._name}</h3>
               <ArrowRight />

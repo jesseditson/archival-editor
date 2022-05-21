@@ -3,7 +3,7 @@ import { toJS } from "mobx";
 import { FC, useMemo } from "react";
 import { PlusCircle } from "react-feather";
 import { EditFieldView } from "./edit-field-view";
-import { EditList, EditListField } from "./lib/styled";
+import { DeleteIcon, EditList, EditListField } from "./lib/styled";
 import { childChangeId, childFieldFromChangeId } from "./lib/util";
 import {
   Change,
@@ -21,7 +21,7 @@ interface EditMultiFieldProps {
   field: string;
   disabled: boolean;
   type: ObjectDefinition[];
-  values: ObjectChildData[];
+  values: (ObjectChildData | undefined)[];
   changedFields: Map<string, Change>;
   onAddChild: (
     parentId: string,
@@ -33,6 +33,7 @@ interface EditMultiFieldProps {
     index: number,
     value: ObjectValue
   ) => Promise<ValidationError | void>;
+  onDelete: (field: string, index: number) => void;
 }
 
 const FieldContainer = styled.div`
@@ -47,6 +48,11 @@ const FieldLabel = styled.label`
 const FieldHeader = styled.div`
   display: flex;
 `;
+const ItemHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+`;
 
 export const EditMultiFieldView: FC<EditMultiFieldProps> = ({
   definition,
@@ -58,12 +64,13 @@ export const EditMultiFieldView: FC<EditMultiFieldProps> = ({
   values,
   onAddChild,
   onUpdate,
+  onDelete,
 }) => {
   const childDefinition = (idx: number): ObjectDefinition => {
     // TODO: shouldn't use 0, not sure what's up with this def being an array.
     return definition[field][0] as ObjectDefinition;
   };
-  const valuesWithChanges = useMemo<ObjectChildData[]>(() => {
+  const valuesWithChanges = useMemo<(ObjectChildData | undefined)[]>(() => {
     const mergedValues = toJS(values);
     for (const change of changedFields.values()) {
       const {
@@ -71,9 +78,12 @@ export const EditMultiFieldView: FC<EditMultiFieldProps> = ({
         field: parentField,
         index,
       } = childFieldFromChangeId(change.id);
+      if (mergedValues[index!] === undefined) {
+        continue;
+      }
       if (id === object._id && parentField === field && index !== null) {
         mergedValues[index] = mergedValues[index] || {};
-        mergedValues[index][change.field] = change.value;
+        mergedValues[index]![change.field] = change.value;
       }
     }
     return mergedValues;
@@ -84,28 +94,40 @@ export const EditMultiFieldView: FC<EditMultiFieldProps> = ({
         <FieldHeader>
           <FieldLabel>{field}:</FieldLabel>
           <PlusCircle
-            onClick={() => onAddChild(object._id, values.length, field)}
+            onClick={() =>
+              onAddChild(object._id, valuesWithChanges.length, field)
+            }
           />
         </FieldHeader>
-        {valuesWithChanges.map((value, idx) => (
-          <li key={`child-${idx}`}>
-            {Object.keys(childDefinition(idx)).map((childField) => (
-              <EditListField key={childField}>
-                <EditFieldView
-                  definition={type[0]}
-                  object={object}
-                  field={childField}
-                  disabled={disabled}
-                  changedFields={changedFields}
-                  type={childDefinition(idx)[childField] as ScalarType}
-                  value={value[childField] as ObjectValue}
-                  onUpdate={(val) => onUpdate(field, idx, val)}
-                  fieldId={childChangeId(object._id, field, idx, childField)}
+        {valuesWithChanges.map((value, idx) =>
+          value ? (
+            <li key={`child-${idx}`}>
+              <ItemHeader>
+                {idx + 1}
+                <DeleteIcon
+                  onClick={() => {
+                    onDelete(field, idx);
+                  }}
                 />
-              </EditListField>
-            ))}
-          </li>
-        ))}
+              </ItemHeader>
+              {Object.keys(childDefinition(idx)).map((childField) => (
+                <EditListField key={childField}>
+                  <EditFieldView
+                    definition={type[0]}
+                    object={object}
+                    field={childField}
+                    disabled={disabled}
+                    changedFields={changedFields}
+                    type={childDefinition(idx)[childField] as ScalarType}
+                    value={value[childField] as ObjectValue}
+                    onUpdate={(val) => onUpdate(field, idx, val)}
+                    fieldId={childChangeId(object._id, field, idx, childField)}
+                  />
+                </EditListField>
+              ))}
+            </li>
+          ) : null
+        )}
       </EditList>
     </FieldContainer>
   );

@@ -1,8 +1,8 @@
 import { FC } from "react";
-import { ArrowLeft } from "react-feather";
+import { ArrowLeft, Delete, X, XCircle } from "react-feather";
 import { EditFieldView } from "./edit-field-view";
 import { EditMultiFieldView } from "./edit-multi-field-view";
-import { PageHeader } from "./lib/styled";
+import { DeleteIcon, PageHeader } from "./lib/styled";
 import { childChangeId } from "./lib/util";
 import {
   Change,
@@ -29,6 +29,7 @@ interface ObjectViewProps {
     index: number,
     field: string
   ) => Promise<(ValidationError | void)[]>;
+  onDelete: (id: string, field?: string, index?: number) => void;
   onDismiss: () => void;
 }
 
@@ -40,12 +41,19 @@ export const ObjectView: FC<ObjectViewProps> = ({
   onUpdate,
   onDismiss,
   onAddChild,
+  onDelete,
 }) => {
   return (
     <div className="object">
       <PageHeader>
         <ArrowLeft onClick={onDismiss} />
         <h2>{object._name}</h2>
+        <DeleteIcon
+          onClick={() => {
+            onDelete(object._id);
+            onDismiss();
+          }}
+        />
       </PageHeader>
       {Object.keys(definition).map((field) =>
         Array.isArray(definition[field]) ? (
@@ -62,6 +70,7 @@ export const ObjectView: FC<ObjectViewProps> = ({
             onUpdate={(childField, index, val) =>
               onUpdate(childChangeId(object._id, field, index, childField), val)
             }
+            onDelete={(field, index) => onDelete(object._id, field, index)}
           />
         ) : (
           <EditFieldView

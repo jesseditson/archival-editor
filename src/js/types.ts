@@ -62,6 +62,12 @@ export interface Change {
   index?: number;
 }
 
+export interface Deletion {
+  id: string;
+  field?: string;
+  index?: number;
+}
+
 export interface Objects {
   [name: string]: ObjectData[];
 }

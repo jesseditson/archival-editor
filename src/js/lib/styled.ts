@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { XCircle } from "react-feather";
 
 export const EditorContainer = styled.div`
   padding: 1em;
@@ -54,4 +55,8 @@ export const EditList = styled.ol`
 export const EditListField = styled.div`
   & label {
   }
+`;
+
+export const DeleteIcon = styled(XCircle)`
+  stroke: red;
 `;

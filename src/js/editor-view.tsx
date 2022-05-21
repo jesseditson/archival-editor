@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import React, { FC, useCallback, useState } from "react";
+import React, { FC, useCallback, useMemo, useState } from "react";
 import { ArrowLeft, Settings } from "react-feather";
 import { EditorContainer } from "./lib/styled";
 import { ObjectView } from "./object-view";
@@ -38,6 +38,7 @@ interface EditorViewProps {
     index: number,
     field: string
   ) => Promise<(ValidationError | void)[]>;
+  onDelete: (id: string, field?: string, index?: number) => void;
   resetChanges: () => Promise<void>;
   syncing: boolean;
   hasUnsyncedChanges: boolean;
@@ -188,16 +189,19 @@ export const EditorView: FC<EditorViewProps> = ({
   onUpdate,
   onAddChild,
   onAddObject,
+  onDelete,
   onSync,
   syncing,
   hasUnsyncedChanges,
 }) => {
   const [showingSettings, setShowingSettings] = useState(false);
   const [showingType, setShowingType] = useState<string | null>();
-  const [showingObject, setShowingObject] = useState<ObjectData | null>(null);
+  const [showingObjectIndex, setShowingObjectIndex] = useState<number | null>(
+    null
+  );
   const goHome = useCallback(() => {
     setShowingType(null);
-    setShowingObject(null);
+    setShowingObjectIndex(null);
   }, []);
   if (showingSettings) {
     return (
@@ -211,22 +215,28 @@ export const EditorView: FC<EditorViewProps> = ({
       />
     );
   }
+  const showingObject = useMemo(() => {
+    if (!objects || !showingType || showingObjectIndex === null) {
+      return null;
+    }
+    return objects[showingType][showingObjectIndex];
+  }, [objects, showingType, showingObjectIndex]);
   return (
     <EditorContainer>
       <HeaderContainer>
         <h1 onClick={goHome}>{repo.name}</h1>
         <Settings onClick={() => setShowingSettings(true)} />
       </HeaderContainer>
-      {showingType && showingObject ? (
+      {showingType && showingObjectIndex !== null ? (
         <ObjectView
           definition={objectTypes![showingType]}
-          object={showingObject}
+          object={showingObject!}
           syncing={syncing}
           changedFields={changedFields}
           onUpdate={(field, value, index) =>
             onUpdate({
               objectType: showingType,
-              id: showingObject._id,
+              id: showingObject!._id,
               field,
               value,
               index,
@@ -241,14 +251,15 @@ export const EditorView: FC<EditorViewProps> = ({
               field
             )
           }
-          onDismiss={() => setShowingObject(null)}
+          onDelete={onDelete}
+          onDismiss={() => setShowingObjectIndex(null)}
         />
       ) : null}
       {showingType && !showingObject ? (
         <ObjectsView
           objects={objects && objects[showingType]}
           type={showingType}
-          onShowObject={setShowingObject}
+          onShowObjectIndex={setShowingObjectIndex}
           onAddObject={(name: string) =>
             onAddObject(name, showingType, objectTypes![showingType])
           }
@@ -278,7 +289,13 @@ export const EditorView: FC<EditorViewProps> = ({
               {changedFields.size === 1 ? "" : "s"}
             </SyncedNote>
           ) : null}
-          <CancelButton disabled={!hasUnsyncedChanges} onClick={resetChanges}>
+          <CancelButton
+            disabled={!hasUnsyncedChanges}
+            onClick={() => {
+              resetChanges();
+              goHome();
+            }}
+          >
             Reset
           </CancelButton>
           <SaveButton disabled={!hasUnsyncedChanges} onClick={onSync}>

@@ -1,4 +1,3 @@
-import cloneDeep from "lodash.clonedeep";
 import {
   runInAction,
   autorun,
@@ -14,11 +13,11 @@ import {
   childChangeId,
   childFieldFromChangeId,
   DEFAULT_VALUES,
-  idFromChangeId,
   setChildField,
 } from "../lib/util";
 import {
   Change,
+  Deletion,
   ErrorData,
   Github,
   GitWorkerDataType,
@@ -56,6 +55,7 @@ export default class Editor {
   worker: Worker;
   gitObjects: ObjectsData | null = null;
   changes: Change[] = [];
+  deletions: Deletion[] = [];
   syncing: boolean = false;
   errors: ErrorData[] = [];
 
@@ -84,13 +84,30 @@ export default class Editor {
       (p, c) => p.concat(c),
       []
     );
+    const idsWithChildDeletions: Map<string, Deletion[]> = new Map();
+    const deletedIds = new Set(
+      this.deletions
+        .filter((d) => {
+          // this is ugly but cheaper
+          if (d.field) {
+            const childDels = idsWithChildDeletions.get(d.id) || [];
+            childDels.push(d);
+            idsWithChildDeletions.set(d.id, childDels);
+            return false;
+          }
+          return true;
+        })
+        .map((d) => d.id)
+    );
     const existingObjectIds = new Set(existingObjects.map((o) => o._id));
     // Create a hash of all the files that were changed but don't yet exist in our git repo.
     const newFiles: { [id: string]: ObjectData } = {};
     const fileTypes: { [id: string]: string } = {};
     this.changes.forEach((change) => {
-      const id = idFromChangeId(change.id);
-      const { field, index } = childFieldFromChangeId(change.id);
+      const { id, field, index } = childFieldFromChangeId(change.id);
+      if (deletedIds.has(id)) {
+        return;
+      }
       if (!existingObjectIds.has(id)) {
         newFiles[id] = newFiles[id] || { _id: id };
         if (fileTypes[id] && fileTypes[id] !== change.objectType) {
@@ -120,6 +137,25 @@ export default class Editor {
     Object.values(newFiles).forEach((newFile) =>
       objects.objects[fileTypes[newFile._id]].push(newFile)
     );
+    // Remove deleted objects
+    for (const type in objects.objects) {
+      for (const idx in objects.objects[type]) {
+        const object = objects.objects[type][idx];
+        if (deletedIds.has(object._id)) {
+          delete objects.objects[type][idx];
+        } else {
+          (idsWithChildDeletions.get(object._id) || []).forEach((cd) => {
+            const children = objects.objects[type][idx][cd.field!] as (
+              | ObjectChildData
+              | undefined
+            )[];
+            children[cd.index!] = undefined;
+            objects.objects[type][idx][cd.field!] =
+              children as ObjectChildData[];
+          });
+        }
+      }
+    }
     return objects;
   }
 
@@ -195,6 +231,16 @@ export default class Editor {
     return values
       .filter((v) => v.status === "fulfilled")
       .map((v) => (v as PromiseFulfilledResult<ValidationError | void>).value);
+  };
+
+  public onRemove = (id: string, field?: string, index?: number) => {
+    runInAction(() => {
+      this.deletions.push({
+        id,
+        field,
+        index,
+      });
+    });
   };
 
   public onAddChild = async (
@@ -311,6 +357,7 @@ export default class Editor {
       objects: computed,
       errors: observable,
       changes: observable,
+      deletions: observable,
     });
     const query = new URLSearchParams(queryString);
     if (this.loadAuth(path, query)) {
@@ -323,6 +370,7 @@ export default class Editor {
       this.githubAuth = init.githubAuth;
       this.cloned = init.cloned;
       this.changes = init.changes || [];
+      this.deletions = init.deletions || [];
     }
     this.worker = new Worker(
       new URL("../worker/git-worker.ts", import.meta.url),
@@ -425,6 +473,7 @@ export function onPersist(
       githubAuth: editor.githubAuth,
       cloned: editor.cloned,
       changes: editor.changes,
+      deletions: editor.deletions,
     };
     callback(JSON.stringify(data));
   });

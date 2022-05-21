@@ -21,6 +21,7 @@ export const EditorVM = observer<{ editorModel: EditorModel }>(
         onUpdate={editorModel.onUpdate}
         onAddObject={editorModel.onAddObject}
         onAddChild={editorModel.onAddChild}
+        onDelete={editorModel.onRemove}
         syncing={editorModel.syncing}
         onSync={editorModel.sync}
         hasUnsyncedChanges={editorModel.hasUnsyncedChanges}
