@@ -1,9 +1,10 @@
 import styled from "@emotion/styled";
-import { FC } from "react";
+import { toJS } from "mobx";
+import { FC, useMemo } from "react";
 import { PlusCircle } from "react-feather";
 import { EditFieldView } from "./edit-field-view";
 import { EditList, EditListField } from "./lib/styled";
-import { childChangeId } from "./lib/util";
+import { childChangeId, childFieldFromChangeId } from "./lib/util";
 import {
   Change,
   ObjectChildData,
@@ -62,6 +63,21 @@ export const EditMultiFieldView: FC<EditMultiFieldProps> = ({
     // TODO: shouldn't use 0, not sure what's up with this def being an array.
     return definition[field][0] as ObjectDefinition;
   };
+  const valuesWithChanges = useMemo<ObjectChildData[]>(() => {
+    const mergedValues = toJS(values);
+    for (const change of changedFields.values()) {
+      const {
+        id,
+        field: parentField,
+        index,
+      } = childFieldFromChangeId(change.id);
+      if (id === object._id && parentField === field && index !== null) {
+        mergedValues[index] = mergedValues[index] || {};
+        mergedValues[index][change.field] = change.value;
+      }
+    }
+    return mergedValues;
+  }, [values, changedFields]);
   return (
     <FieldContainer>
       <EditList>
@@ -71,7 +87,7 @@ export const EditMultiFieldView: FC<EditMultiFieldProps> = ({
             onClick={() => onAddChild(object._id, values.length, field)}
           />
         </FieldHeader>
-        {values.map((value, idx) => (
+        {valuesWithChanges.map((value, idx) => (
           <li key={`child-${idx}`}>
             {Object.keys(childDefinition(idx)).map((childField) => (
               <EditListField key={childField}>
@@ -83,8 +99,8 @@ export const EditMultiFieldView: FC<EditMultiFieldProps> = ({
                   changedFields={changedFields}
                   type={childDefinition(idx)[childField] as ScalarType}
                   value={value[childField] as ObjectValue}
-                  onUpdate={(val) => onUpdate(childField, idx, val)}
-                  fieldId={childChangeId(field, idx, childField)}
+                  onUpdate={(val) => onUpdate(field, idx, val)}
+                  fieldId={childChangeId(object._id, field, idx, childField)}
                 />
               </EditListField>
             ))}

@@ -46,6 +46,8 @@ export interface ObjectData extends ObjectChildData {
   _id: string;
 }
 
+export const MetaKeys = new Set(["_id", "_name", "_filename"]);
+
 export type ContentAddressableObjectData = Omit<ObjectData, "_id">;
 export type WriteableObjectData = Omit<
   ContentAddressableObjectData,

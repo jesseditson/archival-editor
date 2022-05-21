@@ -27,9 +27,12 @@ interface EditorViewProps {
   objects?: Objects;
   onUpdate: (change: Change) => Promise<ValidationError | void>;
   onAddObject: (
+    name: string,
+    type: string,
     object: ObjectDefinition
   ) => Promise<(ValidationError | void)[]>;
   onAddChild: (
+    parentType: string,
     object: ObjectDefinition,
     parentId: string,
     index: number,
@@ -214,7 +217,15 @@ export const EditorView: FC<EditorViewProps> = ({
               index,
             })
           }
-          onAddChild={onAddChild}
+          onAddChild={(parentId, index, field) =>
+            onAddChild(
+              showingType,
+              objectTypes![showingType],
+              parentId,
+              index,
+              field
+            )
+          }
           onDismiss={() => setShowingObject(null)}
         />
       ) : null}
@@ -223,7 +234,9 @@ export const EditorView: FC<EditorViewProps> = ({
           objects={objects && objects[showingType]}
           type={showingType}
           onShowObject={setShowingObject}
-          onAddObject={() => onAddObject(objectTypes![showingType])}
+          onAddObject={(name: string) =>
+            onAddObject(name, showingType, objectTypes![showingType])
+          }
           onDismiss={goHome}
         />
       ) : null}

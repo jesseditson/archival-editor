@@ -26,7 +26,6 @@ export const StringEditor: FC<StringEditorProps> = ({
   const updateValue = useMemo(
     () =>
       throttle((value) => {
-        console.log("UPDATE");
         onUpdate(value);
       }, 400),
     [onUpdate]
@@ -36,7 +35,6 @@ export const StringEditor: FC<StringEditorProps> = ({
       if (disabled) {
         return;
       }
-      console.log("set");
       setValue(e.target.value);
       updateValue(e.target.value);
     },

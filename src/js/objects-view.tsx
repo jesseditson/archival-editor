@@ -8,7 +8,7 @@ interface ObjectsViewProps {
   type: string;
   objects?: ObjectData[];
   onShowObject: (object: ObjectData) => void;
-  onAddObject: () => Promise<(ValidationError | void)[]>;
+  onAddObject: (name: string) => Promise<(ValidationError | void)[]>;
   onDismiss: () => void;
 }
 
@@ -19,12 +19,18 @@ export const ObjectsView: FC<ObjectsViewProps> = ({
   onShowObject,
   onAddObject,
 }) => {
+  const onAdd = useCallback(() => {
+    const name = window.prompt("filename")?.trim().replace(/[^\w]/g, "-");
+    if (name) {
+      onAddObject(name);
+    }
+  }, [onAddObject]);
   return (
     <>
       <PageHeader>
         <ArrowLeft onClick={onDismiss} />
         <h2>{pluralize(type)}</h2>
-        <PlusCircle onClick={onAddObject} />
+        <PlusCircle onClick={onAdd} />
       </PageHeader>
       {objects ? (
         <RoundedList>

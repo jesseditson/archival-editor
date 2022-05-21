@@ -60,7 +60,7 @@ export const ObjectView: FC<ObjectViewProps> = ({
             values={object[field] as ObjectChildData[]}
             onAddChild={onAddChild}
             onUpdate={(childField, index, val) =>
-              onUpdate(childChangeId(field, index, childField), val)
+              onUpdate(childChangeId(object._id, field, index, childField), val)
             }
           />
         ) : (

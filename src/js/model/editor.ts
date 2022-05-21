@@ -1,3 +1,4 @@
+import cloneDeep from "lodash.clonedeep";
 import {
   runInAction,
   autorun,
@@ -8,7 +9,14 @@ import {
 } from "mobx";
 import { v4 as uuidv4 } from "uuid";
 import { GithubAuth, GithubClient } from "../lib/github-client";
-import { changeId, childChangeId, DEFAULT_VALUES } from "../lib/util";
+import {
+  changeId,
+  childChangeId,
+  childFieldFromChangeId,
+  DEFAULT_VALUES,
+  idFromChangeId,
+  setChildField,
+} from "../lib/util";
 import {
   Change,
   ErrorData,
@@ -16,9 +24,14 @@ import {
   GitWorkerDataType,
   GitWorkerMessage,
   GitWorkerOperation,
+  MetaKeys,
+  ObjectChildData,
+  ObjectData,
   ObjectDefinition,
   ObjectsData,
+  ObjectValue,
   ProgressInfo,
+  ScalarType,
   ValidationError,
 } from "../types";
 
@@ -63,9 +76,47 @@ export default class Editor {
   }
 
   get objects(): ObjectsData | null {
-    const objects = this.gitObjects;
-    // TODO: add objects only visible in changes
-    // this.changes.forEach()
+    const objects = toJS(this.gitObjects) || { objects: {}, types: {} };
+    const existingObjects = (Object.values(objects.objects) || []).reduce(
+      (p, c) => p.concat(c),
+      []
+    );
+    const existingObjectIds = new Set(existingObjects.map((o) => o._id));
+    // Create a hash of all the files that were changed but don't yet exist in our git repo.
+    const newFiles: { [id: string]: ObjectData } = {};
+    const fileTypes: { [id: string]: string } = {};
+    this.changes.forEach((change) => {
+      const id = idFromChangeId(change.id);
+      const { field, index } = childFieldFromChangeId(change.id);
+      if (!existingObjectIds.has(id)) {
+        newFiles[id] = newFiles[id] || { _id: id };
+        if (fileTypes[id] && fileTypes[id] !== change.objectType) {
+          throw new Error("Object type mismatch");
+        }
+        fileTypes[id] = change.objectType;
+        const def = objects.types[change.objectType][change.field];
+        if (field && index !== null) {
+          // This is a change to a subfield so we need to hydrate the child structure and set this particular value
+          newFiles[id][field] = setChildField(
+            toJS(newFiles[id][field]) as ObjectChildData[],
+            index,
+            change.field,
+            change.value
+          );
+        } else if (!def && !MetaKeys.has(change.field)) {
+          // This change is for a field that doesn't exist on the definition of this object. It should be impossible.
+          console.log(toJS(change));
+          throw new Error(`Invalid field ${change.field} in change`);
+        } else {
+          // This is a simple scalar value, set it directly.
+          newFiles[id][change.field] = change.value;
+        }
+      }
+    });
+    // Add objects only visible in changes
+    Object.values(newFiles).forEach((newFile) =>
+      objects.objects[fileTypes[newFile._id]].push(newFile)
+    );
     return objects;
   }
 
@@ -111,21 +162,32 @@ export default class Editor {
   };
 
   public onAddObject = async (
+    name: string,
+    type: string,
     object: ObjectDefinition
   ): Promise<(ValidationError | void)[]> => {
     if (this.syncing) {
       throw new Error("Cannot add a child while syncing.");
     }
-    const objectId = uuidv4();
-    const changes = Object.keys(object).map((field) => {
-      const change: Change = {
-        id: changeId(objectId, field),
-        objectType: object._name as string,
-        field: field,
-        value: DEFAULT_VALUES[object[field] as keyof typeof DEFAULT_VALUES],
-      };
-      return change;
+    const objectId = `temp:${uuidv4()}`;
+    const changeForValue = (field: string, value: ObjectValue): Change => ({
+      id: changeId(objectId, field),
+      objectType: type,
+      field: field,
+      value,
     });
+    const changes = Object.keys(object).map((field) => {
+      const fieldDef = object[field];
+      let defaultValue: ScalarType | Array<any> =
+        DEFAULT_VALUES[fieldDef as keyof typeof DEFAULT_VALUES];
+      if (Array.isArray(fieldDef)) {
+        defaultValue = [];
+      }
+      return changeForValue(field, defaultValue);
+    });
+    changes.push(changeForValue("_id", objectId));
+    changes.push(changeForValue("_filename", `/objects/${type}/${name}.toml`));
+    changes.push(changeForValue("_name", name));
     const values = await Promise.allSettled(changes.map(this.onUpdate));
     return values
       .filter((v) => v.status === "fulfilled")
@@ -133,6 +195,7 @@ export default class Editor {
   };
 
   public onAddChild = async (
+    parentType: string,
     object: ObjectDefinition,
     parentId: string,
     index: number,
@@ -144,8 +207,8 @@ export default class Editor {
     const fields = object[field] as ObjectDefinition[];
     const changes = Object.keys(fields[0]).map((cf) => {
       const change: Change = {
-        id: childChangeId(parentId, index, cf),
-        objectType: object._name as string,
+        id: childChangeId(parentId, field, index, cf),
+        objectType: parentType,
         field: cf,
         value: DEFAULT_VALUES[fields[0][cf] as keyof typeof DEFAULT_VALUES],
         index,
@@ -211,7 +274,7 @@ export default class Editor {
       this.branch = "main";
       this.cloned = false;
       this.progressInfo = null;
-      this.objects = null;
+      this.gitObjects = null;
     });
   };
 
@@ -241,7 +304,8 @@ export default class Editor {
       cloning: observable,
       cloned: observable,
       progressInfo: observable,
-      objects: observable,
+      gitObjects: observable,
+      objects: computed,
       errors: observable,
       changes: observable,
     });
