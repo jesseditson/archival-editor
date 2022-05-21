@@ -99,7 +99,13 @@ export default class Editor {
         })
         .map((d) => d.id)
     );
-    const existingObjectIds = new Set(existingObjects.map((o) => o._id));
+    const existingObjectIndexes: Map<string, number> = new Map();
+    const existingObjectIds = new Set(
+      existingObjects.map((o, index) => {
+        existingObjectIndexes.set(o._id, index);
+        return o._id;
+      })
+    );
     // Create a hash of all the files that were changed but don't yet exist in our git repo.
     const newFiles: { [id: string]: ObjectData } = {};
     const fileTypes: { [id: string]: string } = {};
@@ -131,6 +137,17 @@ export default class Editor {
           // This is a simple scalar value, set it directly.
           newFiles[id][change.field] = change.value;
         }
+      } else if (field && index !== null) {
+        // Also need to proactively create child objects inside existing data
+        const objIndex = existingObjectIndexes.get(id)!;
+        objects.objects[change.objectType][objIndex][field] = setChildField(
+          toJS(
+            objects.objects[change.objectType][objIndex][field]
+          ) as ObjectChildData[],
+          index,
+          change.field,
+          change.value
+        );
       }
     });
     // Add objects only visible in changes
