@@ -138,19 +138,39 @@ const CancelButton = styled(Button)`
 
 const BottomControls = styled.div`
   display: flex;
-  justify-content: flex-end;
-  padding: 1em;
+  flex-direction: column;
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   background-color: white;
+`;
+const ControlContent = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  padding: 1em;
   align-items: center;
 `;
 
 const SyncedNote = styled.span`
   color: #333;
   margin-right: 10px;
+`;
+
+const ProgressContainer = styled.div`
+  width: 100%;
+  position: relative;
+  height: 1em;
+`;
+const ProgressMessage = styled.span`
+  position: absolute;
+  margin-left: 10px;
+`;
+const ProgressBar = styled.div<{ completion: number }>`
+  position: absolute;
+  width: ${({ completion }) => completion * 100}%;
+  height: 1em;
+  background-color: #ddc5dd;
 `;
 
 export const EditorView: FC<EditorViewProps> = ({
@@ -197,11 +217,6 @@ export const EditorView: FC<EditorViewProps> = ({
         <h1 onClick={goHome}>{repo.name}</h1>
         <Settings onClick={() => setShowingSettings(true)} />
       </HeaderContainer>
-      {progress ? (
-        <span>
-          {progress.task}: {Math.round(progress.progress * 100)}%
-        </span>
-      ) : null}
       {showingType && showingObject ? (
         <ObjectView
           definition={objectTypes![showingType]}
@@ -248,18 +263,28 @@ export const EditorView: FC<EditorViewProps> = ({
         />
       ) : null}
       <BottomControls>
-        {hasUnsyncedChanges ? (
-          <SyncedNote>
-            {changedFields.size} unsynced change
-            {changedFields.size === 1 ? "" : "s"}
-          </SyncedNote>
+        {progress ? (
+          <ProgressContainer>
+            <ProgressBar completion={progress.progress} />
+            <ProgressMessage>
+              {progress.task}: {Math.round(progress.progress * 100)}%
+            </ProgressMessage>
+          </ProgressContainer>
         ) : null}
-        <CancelButton disabled={!hasUnsyncedChanges} onClick={resetChanges}>
-          Reset
-        </CancelButton>
-        <SaveButton disabled={!hasUnsyncedChanges} onClick={onSync}>
-          Publish
-        </SaveButton>
+        <ControlContent>
+          {hasUnsyncedChanges ? (
+            <SyncedNote>
+              {changedFields.size} unsynced change
+              {changedFields.size === 1 ? "" : "s"}
+            </SyncedNote>
+          ) : null}
+          <CancelButton disabled={!hasUnsyncedChanges} onClick={resetChanges}>
+            Reset
+          </CancelButton>
+          <SaveButton disabled={!hasUnsyncedChanges} onClick={onSync}>
+            Publish
+          </SaveButton>
+        </ControlContent>
       </BottomControls>
     </EditorContainer>
   );

@@ -1,11 +1,10 @@
 /* eslint-env worker */
 import LightningFS from "@isomorphic-git/lightning-fs";
 import cloneDeep from "lodash.clonedeep";
-import git from "isomorphic-git";
+import git, { GitProgressEvent } from "isomorphic-git";
 import { v4 as uuidv4 } from "uuid";
 import GitHttp from "isomorphic-git/http/web/index";
 import TOML from "@iarna/toml";
-
 import {
   GitCloneData,
   GitWorkerMessage,
@@ -17,10 +16,11 @@ import {
   SyncData,
   ContentAddressableObjectData,
   Change,
-  ObjectValue,
   WriteableObjectData,
   ObjectTypes,
+  ObjectChildData,
 } from "../types";
+import { childFieldFromChangeId, setChildField } from "../lib/util";
 
 const PROXY_URL = process.env.PROXY_URL;
 const DEFAULT_COMMIT_MSG =
@@ -51,8 +51,8 @@ self.onmessage = async (evt) => {
     case GitWorkerOperation.refreshObjects:
       await handleErrors(refreshObjects);
       break;
-    case GitWorkerOperation.save:
-      await handleErrors(() => save(message.data[message.op] as SyncData));
+    case GitWorkerOperation.sync:
+      await handleErrors(() => sync(message.data[message.op] as SyncData));
       break;
   }
   self.postMessage({ op: GitWorkerOperation.confirm, uuid: message.uuid });
@@ -60,6 +60,24 @@ self.onmessage = async (evt) => {
 
 self.onmessageerror = (error) => {
   console.error(error);
+};
+
+const onProgress = (evt: GitProgressEvent) => {
+  let progress = evt.loaded / 100;
+  if (evt.total) {
+    progress = evt.loaded / evt.total;
+  }
+  perform(GitWorkerOperation.progress, {
+    task: evt.phase,
+    progress,
+  });
+};
+
+const sendProgress = (name: string, progress: number) => {
+  perform(GitWorkerOperation.progress, {
+    task: name,
+    progress,
+  });
 };
 
 const handleErrors = async <T>(block: () => Promise<T>): Promise<T | void> => {
@@ -83,12 +101,7 @@ const clone = async (data: GitCloneData) => {
     singleBranch: true,
     noTags: true,
     depth: 1,
-    onProgress(evt) {
-      perform(GitWorkerOperation.progress, {
-        task: evt.phase,
-        progress: evt.loaded / evt.total,
-      });
-    },
+    onProgress,
     onMessage(msg) {
       console.log(msg);
     },
@@ -185,8 +198,14 @@ const applyChange = async (
 ): Promise<ObjectData> => {
   const data = cloneDeep(orig);
   // TODO: Maybe some types will want to perform more complex merges.
-  if (change.index !== undefined) {
-    (data[change.field] as ObjectValue[])[change.index] = change.value;
+  const { field, index } = childFieldFromChangeId(change.id);
+  if (index !== null && field) {
+    data[field] = setChildField(
+      data[field] as ObjectChildData[],
+      index,
+      change.field,
+      change.value
+    );
   } else {
     data[change.field] = change.value;
   }
@@ -221,11 +240,14 @@ const commitAllObjects = async (
   await git.commit({ author, fs, message, dir: REPO_DIR });
 };
 
-const save = async (data: SyncData) => {
+const sync = async (data: SyncData) => {
   const {
     changes,
     userInfo: { name, email },
   } = data;
+  if (!name || !email) {
+    throw new Error("Git User must have a name and email");
+  }
   // Pull before syncing. If the data is missing in the next step, we could have
   // conflicted. We'll need to reapply our changes on the client and try again.
   await git.pull({
@@ -239,12 +261,7 @@ const save = async (data: SyncData) => {
     http: GitHttp,
     dir: REPO_DIR,
     singleBranch: true,
-    onProgress(evt) {
-      perform(GitWorkerOperation.progress, {
-        task: evt.phase,
-        progress: evt.loaded / evt.total,
-      });
-    },
+    onProgress,
     onMessage(msg) {
       console.log(msg);
     },
@@ -258,18 +275,33 @@ const save = async (data: SyncData) => {
       console.log(msg);
     },
   });
+  // First, do a pass to hydrate our object cache with any optimistically created temp objects
+  let optimisticObjects: Map<string, ObjectData> = new Map();
+  for (const change of changes) {
+    const { id } = childFieldFromChangeId(change.id);
+    let currentObj = objectCache.get(id) || optimisticObjects.get(id);
+    if (!currentObj && id.startsWith("temp:")) {
+      currentObj = { _filename: id, _id: id, _name: id };
+    }
+    optimisticObjects.set(id, await applyChange(currentObj!, change));
+  }
   // Make sure all the changes apply cleanly. If we throw during this promise,
   // we'll abort all updates so we won't end up with partial application.
   const newObjects: { change: Change; object: ObjectData }[] = [];
-  // We also need to run this serially since changes can commute
+  // We need to run this serially since changes can commute
+  let idx = 0;
   for (const change of changes) {
-    const currentObj = objectCache.get(change.id);
+    sendProgress("Applying Changes", ++idx / changes.length);
+    const { id } = childFieldFromChangeId(change.id);
+    const currentObj = objectCache.get(id) || optimisticObjects.get(id);
     if (!currentObj) {
       throw new MissingObjectError(change);
     }
     const object = await applyChange(currentObj, change);
     newObjects.push({ change, object });
   }
+  let completed = 0;
+  sendProgress("Writing Files", 0);
   await Promise.all(
     newObjects.map(async ({ change, object }) => {
       const writeable = cloneDeep(object) as WriteableObjectData;
@@ -278,10 +310,12 @@ const save = async (data: SyncData) => {
       delete writeable._filename;
       const serialized = TOML.stringify(writeable);
       await fs.promises.writeFile(object._filename, serialized);
+      sendProgress("Writing Files", ++completed / newObjects.length);
       objectCache.delete(change.id);
       objectCache.set(object._id, object);
     })
   );
+  sendProgress("Committing Files", 0);
   await commitAllObjects(DEFAULT_COMMIT_MSG, {
     name,
     email,
@@ -291,12 +325,7 @@ const save = async (data: SyncData) => {
     corsProxy: PROXY_URL,
     http: GitHttp,
     dir: REPO_DIR,
-    onProgress(evt) {
-      perform(GitWorkerOperation.progress, {
-        task: evt.phase,
-        progress: evt.loaded / evt.total,
-      });
-    },
+    onProgress,
     onMessage(msg) {
       console.log(msg);
     },
@@ -310,6 +339,7 @@ const save = async (data: SyncData) => {
       console.log(msg);
     },
   });
+  sendProgress("Done", 1);
   // TODO: Can do a targeted refresh for better perf
   return refreshObjects();
 };

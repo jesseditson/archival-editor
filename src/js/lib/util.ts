@@ -18,7 +18,7 @@ export const childFieldFromChangeId = (changeId: string) => {
   const p = f.slice(1).join("/").split(".");
   const index = parseInt(p[0]);
   return {
-    id: d[0] || null,
+    id: d[0],
     field: f[0] || null,
     index: isNaN(index) ? null : index,
     path: p.slice(1).join("."),

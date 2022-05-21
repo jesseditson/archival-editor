@@ -76,7 +76,10 @@ export default class Editor {
   }
 
   get objects(): ObjectsData | null {
-    const objects = toJS(this.gitObjects) || { objects: {}, types: {} };
+    if (!this.gitObjects) {
+      return null;
+    }
+    const objects = toJS(this.gitObjects);
     const existingObjects = (Object.values(objects.objects) || []).reduce(
       (p, c) => p.concat(c),
       []
@@ -319,6 +322,7 @@ export default class Editor {
       this.branch = init.branch;
       this.githubAuth = init.githubAuth;
       this.cloned = init.cloned;
+      this.changes = init.changes || [];
     }
     this.worker = new Worker(
       new URL("../worker/git-worker.ts", import.meta.url),
@@ -420,6 +424,7 @@ export function onPersist(
       branch: editor.branch,
       githubAuth: editor.githubAuth,
       cloned: editor.cloned,
+      changes: editor.changes,
     };
     callback(JSON.stringify(data));
   });
