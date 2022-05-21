@@ -284,10 +284,7 @@ export const EditorView: FC<EditorViewProps> = ({
         ) : null}
         <ControlContent>
           {hasUnsyncedChanges ? (
-            <SyncedNote>
-              {changedFields.size} unsynced change
-              {changedFields.size === 1 ? "" : "s"}
-            </SyncedNote>
+            <SyncedNote>unsynced changes</SyncedNote>
           ) : null}
           <CancelButton
             disabled={!hasUnsyncedChanges}

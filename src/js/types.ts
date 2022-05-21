@@ -88,6 +88,7 @@ export interface ErrorData {
 export interface SyncData {
   userInfo: Github.User;
   changes: Change[];
+  deletions: Deletion[];
   accessToken: string;
   description?: string;
 }

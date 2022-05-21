@@ -213,11 +213,26 @@ const applyChange = async (
   return data;
 };
 
+const deleteFieldIndexes = async (
+  orig: ObjectData,
+  field: string,
+  indexes: Set<number>
+): Promise<ObjectData> => {
+  const data = cloneDeep(orig);
+  const fieldData = data[field] as ObjectChildData[];
+  const newFieldData: ObjectChildData[] = [];
+  fieldData.forEach((d, idx) => {
+    if (!indexes.has(idx)) {
+      newFieldData.push(d);
+    }
+  });
+  data[field] = newFieldData;
+  return data;
+};
+
 class MissingObjectError extends Error {
-  change: Change;
-  constructor(change: Change) {
-    super("Missing Object");
-    this.change = change;
+  constructor(id: string) {
+    super(`Missing Object: ${id}`);
   }
 }
 
@@ -243,6 +258,7 @@ const commitAllObjects = async (
 const sync = async (data: SyncData) => {
   const {
     changes,
+    deletions,
     userInfo: { name, email },
   } = data;
   if (!name || !email) {
@@ -287,7 +303,8 @@ const sync = async (data: SyncData) => {
   }
   // Make sure all the changes apply cleanly. If we throw during this promise,
   // we'll abort all updates so we won't end up with partial application.
-  const newObjects: { change: Change; object: ObjectData }[] = [];
+  const newObjects: { id: string; object: ObjectData }[] = [];
+  const newObjectIndexes: Map<string, number> = new Map();
   // We need to run this serially since changes can commute
   let idx = 0;
   for (const change of changes) {
@@ -295,15 +312,83 @@ const sync = async (data: SyncData) => {
     const { id } = childFieldFromChangeId(change.id);
     const currentObj = objectCache.get(id) || optimisticObjects.get(id);
     if (!currentObj) {
-      throw new MissingObjectError(change);
+      throw new MissingObjectError(id);
     }
     const object = await applyChange(currentObj, change);
-    newObjects.push({ change, object });
+    newObjectIndexes.set(id, newObjects.push({ id, object }));
   }
+  // Now apply any deletions - we do this after applying changes since we don't want to
+  // throw errors for objects we delete after changing, and it's convenient not to have
+  // to check for deletion in the above blocks.
+  const childDeletions: Map<string, Map<string, Set<number>>> = new Map();
+  for (const d of deletions) {
+    if (d.field) {
+      const idxDeletions = childDeletions.get(d.id) || new Map();
+      idxDeletions.set(d.field, d.index!);
+      childDeletions.set(d.id, idxDeletions);
+    }
+  }
+  // First, add or modify objects that a child deletion modified.
+  // This needs to be serial since we both read from and modify newObjects
+  for (const id of childDeletions.keys()) {
+    const newObjIdx = newObjectIndexes.get(id);
+    const fieldDeletions = childDeletions.get(id)!;
+    if (newObjIdx !== undefined) {
+      for (const field in fieldDeletions.keys()) {
+        newObjects[newObjIdx].object = await deleteFieldIndexes(
+          newObjects[newObjIdx].object,
+          field,
+          fieldDeletions.get(field)!
+        );
+      }
+    } else {
+      // Add a new object with these changes
+      let currentObj = objectCache.get(id) || optimisticObjects.get(id);
+      if (!currentObj) {
+        throw new MissingObjectError(id);
+      }
+      for (const field in fieldDeletions.keys()) {
+        currentObj = await deleteFieldIndexes(
+          currentObj,
+          field,
+          fieldDeletions.get(field)!
+        );
+      }
+      newObjectIndexes.set(id, newObjects.push({ id, object: currentObj }));
+    }
+  }
+  // Now handle full-file deletions
+  await Promise.all(
+    deletions.map(async (deletion) => {
+      // only full-file deletions. We already handled field deletions above.
+      if (deletion.field) {
+        return;
+      }
+      let currentObj = objectCache.get(deletion.id);
+      // remove this object from cached data
+      objectCache.delete(deletion.id);
+      if (newObjectIndexes.has(deletion.id)) {
+        const index = newObjectIndexes.get(deletion.id)!;
+        delete newObjects[index];
+        newObjectIndexes.delete(deletion.id);
+      }
+      if (!currentObj) {
+        // It's fair to assume that if the object isn't in the cache, we don't need
+        // to delete it from the git index or the fs.
+        return;
+      }
+      // clean up the fs and git index
+      await fs.promises.unlink(currentObj._filename);
+      // stored filenames are absolute, but git wants a relative path.
+      const filepath = currentObj._filename.replace(/^\//, "");
+      await git.remove({ fs, dir: REPO_DIR, filepath });
+    })
+  );
+  // Write any changed objects to the fs and our in-memory cache.
   let completed = 0;
   sendProgress("Writing Files", 0);
   await Promise.all(
-    newObjects.map(async ({ change, object }) => {
+    newObjects.map(async ({ id, object }) => {
       const writeable = cloneDeep(object) as WriteableObjectData;
       delete writeable._id;
       delete writeable._name;
@@ -311,7 +396,8 @@ const sync = async (data: SyncData) => {
       const serialized = TOML.stringify(writeable);
       await fs.promises.writeFile(object._filename, serialized);
       sendProgress("Writing Files", ++completed / newObjects.length);
-      objectCache.delete(change.id);
+      // Note that the new ID by definition will not equal the object ID since they are content-addressed.
+      objectCache.delete(id);
       objectCache.set(object._id, object);
     })
   );

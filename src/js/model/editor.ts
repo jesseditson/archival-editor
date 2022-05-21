@@ -68,7 +68,7 @@ export default class Editor {
   }
 
   get hasUnsyncedChanges(): boolean {
-    return this.changes.length > 0;
+    return this.changes.length > 0 || this.deletions.length > 0;
   }
 
   get changedFields(): Map<string, Change> {
@@ -291,11 +291,10 @@ export default class Editor {
   };
 
   public resetChanges = async (): Promise<void> => {
-    if (this.changedFields.size) {
-      runInAction(() => {
-        this.changes = [];
-      });
-    }
+    runInAction(() => {
+      this.changes = [];
+      this.deletions = [];
+    });
   };
 
   public sync = async () => {
@@ -308,10 +307,12 @@ export default class Editor {
     await this.perform(GitWorkerOperation.sync, {
       userInfo: toJS(this.userInfo!),
       changes: toJS(this.changes),
+      deletions: toJS(this.deletions),
       accessToken: this.githubAuth!.accessToken!,
     });
     runInAction(() => {
       this.changes = [];
+      this.deletions = [];
       this.syncing = false;
     });
   };
@@ -324,6 +325,8 @@ export default class Editor {
       this.cloned = false;
       this.progressInfo = null;
       this.gitObjects = null;
+      this.changes = [];
+      this.deletions = [];
     });
   };
 
