@@ -203,6 +203,12 @@ export const EditorView: FC<EditorViewProps> = ({
     setShowingType(null);
     setShowingObjectIndex(null);
   }, []);
+  const showingObject = useMemo(() => {
+    if (!objects || !showingType || showingObjectIndex === null) {
+      return null;
+    }
+    return objects[showingType][showingObjectIndex];
+  }, [objects, showingType, showingObjectIndex]);
   if (showingSettings) {
     return (
       <SettingsView
@@ -215,12 +221,6 @@ export const EditorView: FC<EditorViewProps> = ({
       />
     );
   }
-  const showingObject = useMemo(() => {
-    if (!objects || !showingType || showingObjectIndex === null) {
-      return null;
-    }
-    return objects[showingType][showingObjectIndex];
-  }, [objects, showingType, showingObjectIndex]);
   return (
     <EditorContainer>
       <HeaderContainer>
