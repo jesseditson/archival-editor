@@ -15,6 +15,9 @@ import {
   ValidationError,
 } from "./types";
 import { ObjectsView } from "./objects-view";
+import { childChangeId } from "./lib/util";
+import { ErrorBoundary } from "react-error-boundary";
+import { ErrorView } from "./error-view";
 
 interface EditorViewProps {
   cloned: boolean;
@@ -227,52 +230,57 @@ export const EditorView: FC<EditorViewProps> = ({
         <h1 onClick={goHome}>{repo.name}</h1>
         <Settings onClick={() => setShowingSettings(true)} />
       </HeaderContainer>
-      {showingType && showingObjectIndex !== null ? (
-        <ObjectView
-          definition={objectTypes![showingType]}
-          object={showingObject!}
-          syncing={syncing}
-          changedFields={changedFields}
-          onUpdate={(field, value, index) =>
-            onUpdate({
-              objectType: showingType,
-              id: showingObject!._id,
-              field,
-              value,
-              index,
-            })
-          }
-          onAddChild={(parentId, index, field) =>
-            onAddChild(
-              showingType,
-              objectTypes![showingType],
-              parentId,
-              index,
-              field
-            )
-          }
-          onDelete={onDelete}
-          onDismiss={() => setShowingObjectIndex(null)}
-        />
-      ) : null}
-      {showingType && !showingObject ? (
-        <ObjectsView
-          objects={objects && objects[showingType]}
-          type={showingType}
-          onShowObjectIndex={setShowingObjectIndex}
-          onAddObject={(name: string) =>
-            onAddObject(name, showingType, objectTypes![showingType])
-          }
-          onDismiss={goHome}
-        />
-      ) : null}
-      {!showingObject && !showingType && cloned ? (
-        <ObjectTypesView
-          objects={objects}
-          types={objectTypes}
-          onShowType={setShowingType}
-        />
-      ) : null}
+      <ErrorBoundary FallbackComponent={ErrorView}>
+        {showingType && showingObjectIndex !== null ? (
+          <ObjectView
+            definition={objectTypes![showingType]}
+            object={showingObject!}
+            syncing={syncing}
+            changedFields={changedFields}
+            onUpdate={(field, value, index, path) =>
+              onUpdate({
+                objectType: showingType,
+                id:
+                  path && index
+                    ? childChangeId(showingObject!._id, field, index, path)
+                    : showingObject!._id,
+                field,
+                value,
+                index,
+              })
+            }
+            onAddChild={(parentId, index, field) =>
+              onAddChild(
+                showingType,
+                objectTypes![showingType],
+                parentId,
+                index,
+                field
+              )
+            }
+            onDelete={onDelete}
+            onDismiss={() => setShowingObjectIndex(null)}
+          />
+        ) : null}
+        {showingType && !showingObject ? (
+          <ObjectsView
+            objects={objects && objects[showingType]}
+            type={showingType}
+            onShowObjectIndex={setShowingObjectIndex}
+            onAddObject={(name: string) =>
+              onAddObject(name, showingType, objectTypes![showingType])
+            }
+            onDismiss={goHome}
+          />
+        ) : null}
+        {!showingObject && !showingType && cloned ? (
+          <ObjectTypesView
+            objects={objects}
+            types={objectTypes}
+            onShowType={setShowingType}
+          />
+        ) : null}
+      </ErrorBoundary>
       <BottomControls>
         {progress ? (
           <ProgressContainer>

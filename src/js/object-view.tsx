@@ -1,9 +1,8 @@
 import { FC } from "react";
-import { ArrowLeft, Delete, X, XCircle } from "react-feather";
+import { ArrowLeft } from "react-feather";
 import { EditFieldView } from "./edit-field-view";
 import { EditMultiFieldView } from "./edit-multi-field-view";
 import { DeleteIcon, PageHeader } from "./lib/styled";
-import { childChangeId } from "./lib/util";
 import {
   Change,
   ObjectChildData,
@@ -22,7 +21,8 @@ interface ObjectViewProps {
   onUpdate: (
     field: string,
     value: ObjectValue,
-    index?: number
+    index?: number,
+    path?: string
   ) => Promise<ValidationError | void>;
   onAddChild: (
     parentId: string,
@@ -67,9 +67,7 @@ export const ObjectView: FC<ObjectViewProps> = ({
             type={definition[field] as ObjectDefinition[]}
             values={object[field] as ObjectChildData[]}
             onAddChild={onAddChild}
-            onUpdate={(childField, index, val) =>
-              onUpdate(childChangeId(object._id, field, index, childField), val)
-            }
+            onUpdate={(path, index, val) => onUpdate(field, val, index, path)}
             onDelete={(field, index) => onDelete(object._id, field, index)}
           />
         ) : (
