@@ -24,6 +24,9 @@ export const ErrorView: FC<ErrorViewProps> = ({ error }) => {
     <ErrorContainer>
       <ErrorTitle>Error: {error.message}</ErrorTitle>
       <ErrorStack>{error.stack}</ErrorStack>
+      <a onClick={() => (window.location.href = window.location.href)}>
+        Try Reloading
+      </a>
     </ErrorContainer>
   );
 };

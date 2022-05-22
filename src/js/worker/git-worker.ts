@@ -387,6 +387,24 @@ const sync = async (data: SyncData) => {
   // Write any changed objects to the fs and our in-memory cache.
   let completed = 0;
   sendProgress("Writing Files", 0);
+  // Make sure we have dirs for all types
+  const objectsStr = (
+    await fs.promises.readFile("/objects.toml", { encoding: "utf8" })
+  ).toString();
+  const objectTypes = parseObjectTypes(objectsStr);
+  await Promise.all(
+    Object.keys(objectTypes).map(async (type) => {
+      const dir = `/objects/${type}`;
+      try {
+        const stat = await fs.promises.stat(dir);
+        if (stat.isDirectory()) {
+          return;
+        }
+      } catch (e) {}
+      fs.promises.mkdir(dir);
+    })
+  );
+  // Write out our files
   await Promise.all(
     newObjects.map(async ({ id, object }) => {
       const writeable = cloneDeep(object) as WriteableObjectData;

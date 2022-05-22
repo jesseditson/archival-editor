@@ -173,6 +173,10 @@ export default class Editor {
           );
       }
     });
+    // Hydrate containers for all possible types
+    Object.values(fileTypes).forEach((type) => {
+      objects.objects[type] = [];
+    });
     // Add objects only visible in changes
     Object.values(newFiles).forEach((newFile) =>
       objects.objects[fileTypes[newFile._id]].push(newFile)
@@ -237,7 +241,7 @@ export default class Editor {
   };
 
   public refreshObjects = () => {
-    this.perform(GitWorkerOperation.refreshObjects);
+    return this.perform(GitWorkerOperation.refreshObjects);
   };
 
   public onAddObject = async (
@@ -358,12 +362,12 @@ export default class Editor {
       deletions: toJS(this.deletions),
       accessToken: this.githubAuth!.accessToken!,
     });
+    await this.refreshObjects();
     runInAction(() => {
       this.changes = [];
       this.deletions = [];
       this.syncing = false;
     });
-    this.refreshObjects();
   };
 
   public reset = () => {
