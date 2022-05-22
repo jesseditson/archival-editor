@@ -5,3 +5,6 @@ node_modules
 .env
 # Local Netlify folder
 .netlify
+
+# typescript
+tsconfig.tsbuildinfo

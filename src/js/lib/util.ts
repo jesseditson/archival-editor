@@ -1,4 +1,4 @@
-import { ObjectChildData, ObjectValue } from "../types";
+import { ObjectChildData, ObjectValue, ScalarType } from "../types";
 
 export const changeId = (
   parentId: string,
@@ -34,7 +34,12 @@ export const setChildField = (
   return object;
 };
 
-export const DEFAULT_VALUES = {
+export const DEFAULT_VALUES: Record<ScalarType, any> = {
   string: "",
   markdown: "",
+  image: "",
+  date: (() => {
+    const d = new Date();
+    return `${d.getMonth()}/${d.getDay()}/${d.getFullYear()}`;
+  })(),
 };

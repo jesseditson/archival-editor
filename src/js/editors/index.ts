@@ -5,10 +5,11 @@ import { FC } from "react";
 import { MarkdownEditor } from "./markdown-editor";
 import { ImageEditor } from "./image";
 
-const editorMap: { [type: ScalarType]: FC<EditorProps<any>> } = {
+const editorMap: Record<ScalarType, FC<EditorProps<any>>> = {
   string: StringEditor,
   markdown: MarkdownEditor,
   image: ImageEditor,
+  date: StringEditor,
 };
 
 export default editorMap;

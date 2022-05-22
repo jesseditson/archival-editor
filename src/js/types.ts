@@ -19,16 +19,15 @@ export interface ProgressInfo {
   progress: number;
 }
 
-// TODO: only the "template" key should be allowed to be an arbitrary string.
-export type ScalarType = "string" | "markdown" | "image" | string;
+export type ScalarType = "string" | "markdown" | "image" | "date";
 
 export interface ObjectDefinition {
-  [key: string]: ScalarType;
+  [field: string]: ScalarType;
 }
 
 export type RootObjectDefinition = ObjectDefinition & {
-  [key: string]: ObjectDefinition[];
-};
+  [childField: string]: ObjectDefinition[];
+} & { template?: string };
 
 export interface ObjectTypes {
   [name: string]: RootObjectDefinition;

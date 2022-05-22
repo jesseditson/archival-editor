@@ -9,12 +9,13 @@ import {
   ObjectData,
   ObjectDefinition,
   ObjectValue,
+  RootObjectDefinition,
   ScalarType,
   ValidationError,
 } from "./types";
 
 interface ObjectViewProps {
-  definition: ObjectDefinition;
+  definition: RootObjectDefinition;
   object: ObjectData;
   syncing: boolean;
   changedFields: Map<string, Change>;

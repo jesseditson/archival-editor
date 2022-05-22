@@ -23,12 +23,12 @@ const proxy = (
     const req = httpLib.request(requestOptions, (res) => {
       if (new Set(Object.keys(res.headers)).has("location")) {
         // Modify the location so the client continues to use the proxy
-        const newUrl = res.headers.location.replace(/^https?:\//, "");
+        const newUrl = res.headers.location?.replace(/^https?:\//, "");
         res.headers.location = newUrl;
       }
       const headers: HandlerResponse["headers"] = {};
       Object.keys(res.headers).forEach((key) => {
-        headers[key] = res.headers[key].toString();
+        headers[key] = res.headers[key]!.toString();
       });
       // Ideally we'd pipe res instead of buffering, but it doesn't seem like netlify handlers expose a response object:
       // https://answers.netlify.com/t/stream-content-to-function-response-body/3558
@@ -38,7 +38,7 @@ const proxy = (
       });
       res.on("end", () => {
         resolve({
-          statusCode: res.statusCode,
+          statusCode: res.statusCode || 500,
           headers,
           body,
         });
@@ -58,5 +58,5 @@ export const handler: Handler = async (event, context) => {
     };
   }
 
-  return proxy(event.httpMethod, event.rawUrl, event.body, event.headers);
+  return proxy(event.httpMethod, event.rawUrl, event.body || "", event.headers);
 };

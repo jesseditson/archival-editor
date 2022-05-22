@@ -12,6 +12,7 @@ import {
   Objects,
   ObjectTypes,
   ProgressInfo,
+  RootObjectDefinition,
   ValidationError,
 } from "./types";
 import { ObjectsView } from "./objects-view";
@@ -32,11 +33,11 @@ interface EditorViewProps {
   onAddObject: (
     name: string,
     type: string,
-    object: ObjectDefinition
+    object: RootObjectDefinition
   ) => Promise<(ValidationError | void)[]>;
   onAddChild: (
     parentType: string,
-    object: ObjectDefinition,
+    object: RootObjectDefinition,
     parentId: string,
     index: number,
     field: string

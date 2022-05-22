@@ -257,7 +257,7 @@ export default class Editor {
     });
     const changes = Object.keys(object).map((field) => {
       const fieldDef = object[field];
-      let defaultValue: ScalarType | Array<any> =
+      let defaultValue =
         DEFAULT_VALUES[fieldDef as keyof typeof DEFAULT_VALUES];
       if (Array.isArray(fieldDef)) {
         defaultValue = [];

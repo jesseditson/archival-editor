@@ -11,12 +11,13 @@ import {
   ObjectData,
   ObjectDefinition,
   ObjectValue,
+  RootObjectDefinition,
   ScalarType,
   ValidationError,
 } from "./types";
 
 interface EditMultiFieldProps {
-  definition: ObjectDefinition;
+  definition: RootObjectDefinition;
   object: ObjectData;
   field: string;
   disabled: boolean;
