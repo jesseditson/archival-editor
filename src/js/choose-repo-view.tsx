@@ -1,7 +1,7 @@
 import styled from "@emotion/styled";
 import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
-import { Loader } from "react-feather";
-import { EditorContainer } from "./lib/styled";
+import { ArrowRight, Loader } from "react-feather";
+import { EditorContainer, RoundedList, RoundedListRow } from "./lib/styled";
 import { Github, ProgressInfo } from "./types";
 
 const ARCHIVAL_WEBSITE_TEMPLATE_NODE_ID = "R_kgDOGX83rQ";
@@ -14,12 +14,16 @@ interface ChooseRepoViewProps {
 }
 
 const Filters = styled.fieldset`
+  font-size: 1.5em;
+  label {
+    margin-right: 0.5em;
+  }
+`;
+const RepoList = styled(RoundedList)`
   font-size: 1em;
 `;
-const RepoList = styled.ul`
-  font-size: 1em;
-  list-style-type: none;
-  padding-left: 0;
+const RepoRow = styled(RoundedListRow)`
+  cursor: pointer;
 `;
 
 export const ChooseRepoView: FC<ChooseRepoViewProps> = ({
@@ -52,7 +56,7 @@ export const ChooseRepoView: FC<ChooseRepoViewProps> = ({
         return true;
       }
       // Make some educated guesses
-      if (repo.topics.includes("archival") || repo.language === "CSS") {
+      if (repo.topics.includes("made-with-archival")) {
         return true;
       }
       if (!showAll) {
@@ -100,10 +104,10 @@ export const ChooseRepoView: FC<ChooseRepoViewProps> = ({
       </Filters>
       <RepoList>
         {repos.map((repo) => (
-          <li key={repo.node_id} className="repo" onClick={() => setRepo(repo)}>
+          <RepoRow key={repo.node_id} onClick={() => setRepo(repo)}>
             <h3>{repo.name}</h3>
-            {repo.template_repository}
-          </li>
+            <ArrowRight />
+          </RepoRow>
         ))}
       </RepoList>
     </EditorContainer>

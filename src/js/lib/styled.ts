@@ -27,7 +27,7 @@ export const RoundedList = styled.ol`
   border-radius: 1.5em;
 `;
 
-export const RoundedListRow = styled.div`
+export const RoundedListRow = styled.li`
   display: flex;
   justify-content: space-between;
   align-items: center;
