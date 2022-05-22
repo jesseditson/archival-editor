@@ -132,7 +132,8 @@ export default class Editor {
         } else if (!def && !MetaKeys.has(change.field)) {
           // This change is for a field that doesn't exist on the definition of this object. It should be impossible.
           console.log(toJS(change));
-          throw new Error(`Invalid field ${change.field} in change`);
+          console.error(`Invalid field ${change.field} in change. Resetting.`);
+          this.resetChanges();
         } else {
           // This is a simple scalar value, set it directly.
           newFiles[id][change.field] = change.value;
@@ -294,6 +295,7 @@ export default class Editor {
     // TODO: validate change
     runInAction(() => {
       if (this.changedFields.has(change.id)) {
+        // Later changes to the same field just replace the value.
         for (const i in this.changes) {
           if (this.changes[i].id === change.id) {
             this.changes[i] = change;
@@ -311,6 +313,14 @@ export default class Editor {
     runInAction(() => {
       this.changes = [];
       this.deletions = [];
+    });
+  };
+
+  public uploadFile = (file: File): Promise<string> => {
+    const fr = new FileReader();
+    return new Promise((resolve) => {
+      fr.addEventListener("load", () => resolve(fr.result as string));
+      fr.readAsDataURL(file);
     });
   };
 
