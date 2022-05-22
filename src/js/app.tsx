@@ -34,12 +34,11 @@ const App: FC = () => {
   const editorModel = createModel();
   useEffect(() => {
     onPersist(editorModel, (serialized) => {
-      console.log("writing:", JSON.parse(serialized));
       localStorage.setItem("editorModel", serialized);
     });
-    autorun(() => {
-      console.log(toJS(editorModel));
-    });
+    // autorun(() => {
+    //   console.log(toJS(editorModel));
+    // });
   }, [editorModel]);
   return (
     <AppContainer>

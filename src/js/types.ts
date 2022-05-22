@@ -20,14 +20,18 @@ export interface ProgressInfo {
 }
 
 // TODO: only the "template" key should be allowed to be an arbitrary string.
-export type ScalarType = "string" | "markdown" | string;
+export type ScalarType = "string" | "markdown" | "image" | string;
 
 export interface ObjectDefinition {
-  [key: string]: ScalarType | ObjectDefinition[];
+  [key: string]: ScalarType;
 }
 
+export type RootObjectDefinition = ObjectDefinition & {
+  [key: string]: ObjectDefinition[];
+};
+
 export interface ObjectTypes {
-  [name: string]: ObjectDefinition;
+  [name: string]: RootObjectDefinition;
 }
 
 export type ObjectArrayValue = string[] | number[];
@@ -59,7 +63,6 @@ export interface Change {
   id: string;
   field: string;
   value: ObjectValue;
-  index?: number;
 }
 
 export interface Deletion {

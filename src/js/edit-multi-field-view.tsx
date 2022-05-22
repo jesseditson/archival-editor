@@ -4,7 +4,7 @@ import { FC, useMemo } from "react";
 import { PlusCircle } from "react-feather";
 import { EditFieldView } from "./edit-field-view";
 import { DeleteIcon, EditList, EditListField } from "./lib/styled";
-import { childChangeId, childFieldFromChangeId } from "./lib/util";
+import { changeId, parseChangeId } from "./lib/util";
 import {
   Change,
   ObjectChildData,
@@ -50,7 +50,7 @@ const FieldHeader = styled.div`
 `;
 const ItemHeader = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   font-weight: 700;
 `;
 
@@ -73,11 +73,7 @@ export const EditMultiFieldView: FC<EditMultiFieldProps> = ({
   const valuesWithChanges = useMemo<(ObjectChildData | undefined)[]>(() => {
     const mergedValues = toJS(values);
     for (const change of changedFields.values()) {
-      const {
-        id,
-        field: parentField,
-        index,
-      } = childFieldFromChangeId(change.id);
+      const { id, field: parentField, index } = parseChangeId(change.id);
       if (mergedValues[index!] === undefined) {
         continue;
       }
@@ -103,25 +99,24 @@ export const EditMultiFieldView: FC<EditMultiFieldProps> = ({
           value ? (
             <li key={`child-${idx}`}>
               <ItemHeader>
-                {idx + 1}
                 <DeleteIcon
                   onClick={() => {
                     onDelete(field, idx);
                   }}
                 />
               </ItemHeader>
-              {Object.keys(childDefinition(idx)).map((childField) => (
-                <EditListField key={childField}>
+              {Object.keys(childDefinition(idx)).map((path) => (
+                <EditListField key={path}>
                   <EditFieldView
                     definition={type[0]}
                     object={object}
-                    field={childField}
+                    field={path}
                     disabled={disabled}
                     changedFields={changedFields}
-                    type={childDefinition(idx)[childField] as ScalarType}
-                    value={value[childField] as ObjectValue}
-                    onUpdate={(val) => onUpdate(field, idx, val)}
-                    fieldId={childChangeId(object._id, field, idx, childField)}
+                    type={childDefinition(idx)[path] as ScalarType}
+                    value={value[path] as ObjectValue}
+                    onUpdate={(val) => onUpdate(path, idx, val)}
+                    fieldId={changeId(object._id, field, idx, path)}
                   />
                 </EditListField>
               ))}

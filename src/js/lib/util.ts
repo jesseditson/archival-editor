@@ -1,18 +1,16 @@
-import { Change, ObjectChildData, ObjectValue } from "../types";
+import { ObjectChildData, ObjectValue } from "../types";
 
-export const childChangeId = (
+export const changeId = (
   parentId: string,
   parentField: string,
-  index: number,
+  index?: number,
   child?: string
-) => `${parentId}#${parentField}/${index}${child ? `.${child}` : ""}`;
+) =>
+  `${parentId}#${parentField}${
+    typeof index === "number" ? `/${index}${child ? `.${child}` : ""}` : ""
+  }`;
 
-export const changeId = (o: Change | string, f?: string) =>
-  f ? `${o as string}#${f}` : `${(o as Change).id}#${(o as Change).field}`;
-
-export const idFromChangeId = (changeId: string) => changeId.split("#")[0]!;
-
-export const childFieldFromChangeId = (changeId: string) => {
+export const parseChangeId = (changeId: string) => {
   const d = changeId.split("#");
   const f = d.slice(1).join("#").split("/");
   const p = f.slice(1).join("/").split(".");

@@ -20,7 +20,7 @@ import {
   ObjectTypes,
   ObjectChildData,
 } from "../types";
-import { childFieldFromChangeId, setChildField } from "../lib/util";
+import { parseChangeId, setChildField } from "../lib/util";
 
 const PROXY_URL = process.env.PROXY_URL;
 const DEFAULT_COMMIT_MSG =
@@ -198,12 +198,12 @@ const applyChange = async (
 ): Promise<ObjectData> => {
   const data = cloneDeep(orig);
   // TODO: Maybe some types will want to perform more complex merges.
-  const { field, index } = childFieldFromChangeId(change.id);
-  if (index !== null && field) {
-    data[field] = setChildField(
-      data[field] as ObjectChildData[],
+  const { index, path } = parseChangeId(change.id);
+  if (index !== null && path) {
+    data[change.field] = setChildField(
+      data[change.field] as ObjectChildData[],
       index,
-      change.field,
+      path,
       change.value
     );
   } else {
@@ -294,7 +294,7 @@ const sync = async (data: SyncData) => {
   // First, do a pass to hydrate our object cache with any optimistically created temp objects
   let optimisticObjects: Map<string, ObjectData> = new Map();
   for (const change of changes) {
-    const { id } = childFieldFromChangeId(change.id);
+    const { id } = parseChangeId(change.id);
     let currentObj = objectCache.get(id) || optimisticObjects.get(id);
     if (!currentObj && id.startsWith("temp:")) {
       currentObj = { _filename: id, _id: id, _name: id };
@@ -309,7 +309,7 @@ const sync = async (data: SyncData) => {
   let idx = 0;
   for (const change of changes) {
     sendProgress("Applying Changes", ++idx / changes.length);
-    const { id } = childFieldFromChangeId(change.id);
+    const { id } = parseChangeId(change.id);
     const currentObj = objectCache.get(id) || optimisticObjects.get(id);
     if (!currentObj) {
       throw new MissingObjectError(id);
@@ -426,6 +426,4 @@ const sync = async (data: SyncData) => {
     },
   });
   sendProgress("Done", 1);
-  // TODO: Can do a targeted refresh for better perf
-  return refreshObjects();
 };

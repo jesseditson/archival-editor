@@ -10,9 +10,8 @@ import { v4 as uuidv4 } from "uuid";
 import { GithubAuth, GithubClient } from "../lib/github-client";
 import {
   changeId,
-  childChangeId,
-  childFieldFromChangeId,
   DEFAULT_VALUES,
+  parseChangeId,
   setChildField,
 } from "../lib/util";
 import {
@@ -30,6 +29,7 @@ import {
   ObjectsData,
   ObjectValue,
   ProgressInfo,
+  RootObjectDefinition,
   ScalarType,
   ValidationError,
 } from "../types";
@@ -72,7 +72,7 @@ export default class Editor {
   }
 
   get changedFields(): Map<string, Change> {
-    return new Map(this.changes.map((c) => [changeId(c), c]));
+    return new Map(this.changes.map((c) => [c.id, c]));
   }
 
   get objects(): ObjectsData | null {
@@ -110,23 +110,36 @@ export default class Editor {
     const newFiles: { [id: string]: ObjectData } = {};
     const fileTypes: { [id: string]: string } = {};
     this.changes.forEach((change) => {
-      const { id, field, index } = childFieldFromChangeId(change.id);
+      const { id, field, index, path } = parseChangeId(change.id);
       if (deletedIds.has(id)) {
         return;
       }
-      if (!existingObjectIds.has(id)) {
+      const def = objects.types[change.objectType][change.field];
+      if (!existingObjectIds.has(id) && !id.startsWith("temp:")) {
+        console.log(toJS(change));
+        console.error(
+          `Attempt to modify an object ${id} that does not exist. Resetting.`
+        );
+        this.resetChanges();
+        return;
+      }
+      if (id.startsWith("temp:")) {
         newFiles[id] = newFiles[id] || { _id: id };
         if (fileTypes[id] && fileTypes[id] !== change.objectType) {
-          throw new Error("Object type mismatch");
+          console.log(toJS(change));
+          console.error(
+            `Object type mismatch (expected ${fileTypes[id]}, got ${change.objectType}) in change. Resetting.`
+          );
+          this.resetChanges();
+          return;
         }
         fileTypes[id] = change.objectType;
-        const def = objects.types[change.objectType][change.field];
         if (field && index !== null) {
           // This is a change to a subfield so we need to hydrate the child structure and set this particular value
           newFiles[id][field] = setChildField(
             toJS(newFiles[id][field]) as ObjectChildData[],
             index,
-            change.field,
+            path,
             change.value
           );
         } else if (!def && !MetaKeys.has(change.field)) {
@@ -134,21 +147,30 @@ export default class Editor {
           console.log(toJS(change));
           console.error(`Invalid field ${change.field} in change. Resetting.`);
           this.resetChanges();
+          return;
         } else {
           // This is a simple scalar value, set it directly.
           newFiles[id][change.field] = change.value;
         }
-      } else if (field && index !== null) {
+      } else if (path && index !== null) {
+        const childDef = (def as ObjectDefinition[])![0][path];
+        if (!childDef) {
+          // This change is for a field that doesn't exist on the definition of this object. It should be impossible.
+          console.log(toJS(change));
+          console.error(`Invalid child path ${path} in change. Resetting.`);
+          this.resetChanges();
+        }
         // Also need to proactively create child objects inside existing data
         const objIndex = existingObjectIndexes.get(id)!;
-        objects.objects[change.objectType][objIndex][field] = setChildField(
-          toJS(
-            objects.objects[change.objectType][objIndex][field]
-          ) as ObjectChildData[],
-          index,
-          change.field,
-          change.value
-        );
+        objects.objects[change.objectType][objIndex][change.field] =
+          setChildField(
+            toJS(
+              objects.objects[change.objectType][objIndex][change.field]
+            ) as ObjectChildData[],
+            index,
+            path,
+            change.value
+          );
       }
     });
     // Add objects only visible in changes
@@ -263,7 +285,7 @@ export default class Editor {
 
   public onAddChild = async (
     parentType: string,
-    object: ObjectDefinition,
+    object: RootObjectDefinition,
     parentId: string,
     index: number,
     field: string
@@ -274,11 +296,10 @@ export default class Editor {
     const fields = object[field] as ObjectDefinition[];
     const changes = Object.keys(fields[0]).map((cf) => {
       const change: Change = {
-        id: childChangeId(parentId, field, index, cf),
+        id: changeId(parentId, field, index, cf),
         objectType: parentType,
         field: cf,
         value: DEFAULT_VALUES[fields[0][cf] as keyof typeof DEFAULT_VALUES],
-        index,
       };
       return change;
     });
@@ -295,7 +316,7 @@ export default class Editor {
     // TODO: validate change
     runInAction(() => {
       if (this.changedFields.has(change.id)) {
-        // Later changes to the same field just replace the value.
+        // Later changes to the same field just replace the change.
         for (const i in this.changes) {
           if (this.changes[i].id === change.id) {
             this.changes[i] = change;
@@ -342,6 +363,7 @@ export default class Editor {
       this.deletions = [];
       this.syncing = false;
     });
+    this.refreshObjects();
   };
 
   public reset = () => {

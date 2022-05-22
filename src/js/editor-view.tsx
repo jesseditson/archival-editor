@@ -15,7 +15,7 @@ import {
   ValidationError,
 } from "./types";
 import { ObjectsView } from "./objects-view";
-import { childChangeId } from "./lib/util";
+import { changeId } from "./lib/util";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorView } from "./error-view";
 
@@ -240,13 +240,9 @@ export const EditorView: FC<EditorViewProps> = ({
             onUpdate={(field, value, index, path) =>
               onUpdate({
                 objectType: showingType,
-                id:
-                  path && index
-                    ? childChangeId(showingObject!._id, field, index, path)
-                    : showingObject!._id,
+                id: changeId(showingObject!._id, field, index, path),
                 field,
                 value,
-                index,
               })
             }
             onAddChild={(parentId, index, field) =>
