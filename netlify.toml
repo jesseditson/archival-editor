@@ -7,13 +7,17 @@ directory = "netlify/functions/"
 command = "parcel src/index.html"
 [[redirects]]
 from = "/github-oauth"
+status = 200
 to = "/.netlify/functions/github-oauth"
 [[redirects]]
 from = "/cors-proxy"
+status = 200
 to = "/.netlify/functions/cors-proxy"
 [[redirects]]
 from = "/authorized/github"
+status = 200
 to = "/"
 [[redirects]]
 from = "/*"
+status = 200
 to = "/"
