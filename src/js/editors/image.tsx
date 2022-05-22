@@ -3,7 +3,6 @@ import React, {
   FC,
   useCallback,
   useEffect,
-  useMemo,
   useState,
 } from "react";
 import { EditorProps } from "./types";
@@ -13,7 +12,8 @@ import {
   FileUploadContextProps,
 } from "../lib/file-upload-context";
 import { Link2, Loader, UploadCloud } from "react-feather";
-import throttle from "lodash.throttle";
+
+const IMG_SRC_RE = /^(http|data)/;
 
 interface ImageEditorProps extends EditorProps<string> {}
 
@@ -61,6 +61,9 @@ const Input = styled.input<{ hasValue: boolean }>`
   flex-grow: 1;
   opacity: ${({ hasValue }) => (hasValue ? 0.6 : 1)};
 `;
+const HiddenImageLoader = styled.img`
+  display: none;
+`;
 
 const ImageEditorView: FC<ImageEditorProps & FileUploadContextProps> = ({
   initialValue,
@@ -73,16 +76,7 @@ const ImageEditorView: FC<ImageEditorProps & FileUploadContextProps> = ({
   const [value, setValue] = useState(initialValue || "");
   const [uploading, setUploading] = useState(false);
   const [uploadMode, setUploadMode] = useState(false);
-  const updateIfValid = useMemo(
-    () =>
-      throttle(async (url: string) => {
-        const req = await fetch(url, { method: "HEAD" });
-        if (req.ok) {
-          onUpdate(url);
-        }
-      }, 1000),
-    [onUpdate]
-  );
+  const [shouldUpdate, setShouldUpdate] = useState(false);
   const onChangeInput = useCallback(
     async (e: ChangeEvent<HTMLInputElement>) => {
       if (e.target.files?.length) {
@@ -100,17 +94,28 @@ const ImageEditorView: FC<ImageEditorProps & FileUploadContextProps> = ({
         }
       } else {
         setValue(e.target.value);
-        updateIfValid(e.target.value);
+        setShouldUpdate(true);
       }
     },
     [uploadMode, onUpdate]
   );
+  const onImageLoaded = useCallback(() => {
+    if (shouldUpdate) {
+      onUpdate(value);
+      setShouldUpdate(false);
+    }
+  }, [shouldUpdate, onUpdate, value]);
   useEffect(() => {
     setValue(initialValue || "");
   }, [initialValue]);
   return (
     <ImageEditorContainer isUnsaved={isUnsaved}>
-      {value ? <ImagePreview imageURL={value} /> : null}
+      {value && IMG_SRC_RE.test(value) ? (
+        <>
+          <HiddenImageLoader src={value} onLoad={onImageLoaded} />
+          <ImagePreview imageURL={value} />
+        </>
+      ) : null}
       <EditorFields>
         {!uploadMode ? (
           <UploadCloud onClick={() => setUploadMode(true)} />
