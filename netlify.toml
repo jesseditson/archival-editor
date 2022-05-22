@@ -12,5 +12,8 @@ to = "/.netlify/functions/github-oauth"
 from = "/cors-proxy"
 to = "/.netlify/functions/cors-proxy"
 [[redirects]]
+from = "/authorized/github"
+to = "/"
+[[redirects]]
 from = "/*"
 to = "/"
