@@ -438,7 +438,7 @@ export default class Editor {
       console.error(error);
     };
     this.worker.onmessage = this.handleMessage;
-    if (this.githubAuth) {
+    if (this.githubAuth?.accessToken) {
       this.githubClient = new GithubClient(this.githubAuth);
       this.loadUserInfo();
     }
