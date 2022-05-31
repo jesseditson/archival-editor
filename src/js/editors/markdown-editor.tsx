@@ -6,22 +6,24 @@ import MarkdownIt from "markdown-it";
 import MdEditor from "react-markdown-editor-lite";
 // import style manually
 import "react-markdown-editor-lite/lib/index.css";
+import { FileUploadContext, FileUploadContextProps } from "../lib/file-upload-context";
 
 const mdParser = new MarkdownIt(/* Markdown-it options */);
 
-interface MarkdownEditorProps extends EditorProps<string> {}
+interface MarkdownEditorProps extends EditorProps<string> { }
 
 const StringEditorContainer = styled.div<{ isUnsaved: boolean }>`
   background-color: ${({ isUnsaved }) => (isUnsaved ? "yellow" : "initial")};
   padding: 5px;
 `;
 
-export const MarkdownEditor: FC<MarkdownEditorProps> = ({
+const MarkdownEditorView: FC<MarkdownEditorProps & FileUploadContextProps> = ({
   initialValue,
   field,
   disabled,
   isUnsaved,
   onUpdate,
+  onUpload,
 }) => {
   const [value, setValue] = useState(initialValue);
   const updateValue = useMemo(
@@ -38,10 +40,6 @@ export const MarkdownEditor: FC<MarkdownEditorProps> = ({
     },
     [setValue, updateValue]
   );
-  const onImageUpload = useCallback((file: File) => {
-    //TODO
-    console.error("Image uploading not yet supported.");
-  }, []);
   useEffect(() => {
     setValue(initialValue);
   }, [initialValue]);
@@ -53,8 +51,16 @@ export const MarkdownEditor: FC<MarkdownEditorProps> = ({
         style={{ height: "500px" }}
         renderHTML={(text) => mdParser.render(text)}
         onChange={onChange}
-        onImageUpload={onImageUpload}
+        onImageUpload={onUpload}
       />
     </StringEditorContainer>
   );
 };
+
+export const MarkdownEditor: FC<MarkdownEditorProps> = (props: MarkdownEditorProps) => (
+  <FileUploadContext.Consumer>
+    {(fuProps: FileUploadContextProps) => (
+      <MarkdownEditorView {...props} {...fuProps} />
+    )}
+  </FileUploadContext.Consumer>
+);

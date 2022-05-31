@@ -30,7 +30,6 @@ import {
   ObjectValue,
   ProgressInfo,
   RootObjectDefinition,
-  ScalarType,
   ValidationError,
 } from "../types";
 
@@ -341,12 +340,20 @@ export default class Editor {
     });
   };
 
-  public uploadFile = (file: File): Promise<string> => {
-    const fr = new FileReader();
-    return new Promise((resolve) => {
-      fr.addEventListener("load", () => resolve(fr.result as string));
-      fr.readAsDataURL(file);
+  public uploadFile = async (file: File): Promise<string> => {
+    if (!this.repo) {
+      throw new Error("Cannot upload without a repo");
+    }
+    const ext = file.name.replace(/^.+\.(.*)/, "$1");
+    const res = await fetch("/s3-url", {
+      method: "POST",
+      body: JSON.stringify({
+        filename: `${uuidv4()}${ext}`,
+        repo: this.repo.node_id,
+      }),
     });
+    const { url } = await res.json();
+    return url;
   };
 
   public sync = async () => {
