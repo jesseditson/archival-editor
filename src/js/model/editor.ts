@@ -8,6 +8,7 @@ import {
 } from "mobx";
 import { v4 as uuidv4 } from "uuid";
 import { GithubAuth, GithubClient } from "../lib/github-client";
+import upload from "../lib/upload";
 import {
   changeId,
   DEFAULT_VALUES,
@@ -345,15 +346,24 @@ export default class Editor {
       throw new Error("Cannot upload without a repo");
     }
     const ext = file.name.replace(/^.+\.(.*)/, "$1");
+    const filename = `${uuidv4()}${ext}`;
     const res = await fetch("/s3-url", {
       method: "POST",
       body: JSON.stringify({
-        filename: `${uuidv4()}${ext}`,
+        filename,
         repo: this.repo.node_id,
       }),
     });
     const { url } = await res.json();
-    return url;
+    await upload(url, file, (loaded) => {
+      runInAction(() => {
+        this.progressInfo = { task: "Uploading File...", progress: loaded };
+      });
+    });
+    runInAction(() => {
+      this.progressInfo = { task: "Done", progress: -1 };
+    });
+    return `https://archival-editor-uploads.s3.us-west-2.amazonaws.com/${this.repo.node_id}/${filename}`;
   };
 
   public sync = async () => {
