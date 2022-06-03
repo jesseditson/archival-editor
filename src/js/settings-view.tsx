@@ -1,11 +1,14 @@
 import styled from "@emotion/styled";
-import React, { FC, useState } from "react";
+import { uniqueId } from "lodash";
+import React, { FC, useCallback, useState } from "react";
 import { ArrowLeft } from "react-feather";
 import { Button } from "./lib/styled";
 import {
     ProgressInfo,
 } from "./types";
 
+const NETLIFY_CLIENT_ID = process.env.NETLIFY_CLIENT_ID!
+const NETLIFY_REDIRECT_URI = process.env.NETLIFY_REDIRECT_URI!
 
 const SettingsViewContainer = styled.div`
 display: flex;
@@ -30,7 +33,6 @@ interface SettingsViewProps {
     onReset: () => void;
     onDismiss: () => void;
     netlifyConnected: boolean;
-    onNetlifyLogin: () => void;
     onNetlifyLogout: () => void;
     cloneRepo: (branch: string) => void;
     progress: ProgressInfo | null;
@@ -52,11 +54,19 @@ export const SettingsView: FC<SettingsViewProps> = ({
     progress,
     onReset,
     netlifyConnected,
-    onNetlifyLogin,
     onNetlifyLogout,
     onDismiss,
 }) => {
     const [branch, updateBranch] = useState(initialBranch);
+    const netlifyLogin = useCallback(() => {
+        const state = uniqueId()
+        localStorage.setItem('NETLIFY_LOGIN_STATE', state);
+        window.location.href = 'https://app.netlify.com/authorize?' +
+            'client_id=' + NETLIFY_CLIENT_ID +
+            '&response_type=token' +
+            '&redirect_uri=' + NETLIFY_REDIRECT_URI +
+            '&state=' + state
+    }, [])
     return (
         <SettingsViewContainer>
             <SettingsHeader>
@@ -82,7 +92,7 @@ export const SettingsView: FC<SettingsViewProps> = ({
                     <Button onClick={() => cloneRepo(branch)}>Checkout Branch</Button>
                 )}
             </div>
-            {netlifyConnected ? <Button onClick={onNetlifyLogout}>Sign out of Netlify</Button> : <Button onClick={onNetlifyLogin}>Sign in to Netlify</Button>}
+            {netlifyConnected ? <Button onClick={onNetlifyLogout}>Sign out of Netlify</Button> : <Button onClick={netlifyLogin}>Sign in to Netlify</Button>}
             <ResetButton onClick={onReset}>Reset Repository</ResetButton>
         </SettingsViewContainer>
     );

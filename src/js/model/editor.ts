@@ -41,10 +41,15 @@ const CONFIG = {
   scopes: ["repo"],
 };
 
+interface NetlifyAuth {
+  token: string;
+}
+
 const waitingPromises: Map<string, Function> = new Map();
 export default class Editor {
   githubAuth: GithubAuth | null = null;
   githubClient: GithubClient | null = null;
+  netlifyAuth: NetlifyAuth | null = null;
   userInfo: Github.User | null = null;
   repoList: Github.Repo[] = [];
   repo: Github.Repo | null = null;
@@ -73,6 +78,10 @@ export default class Editor {
 
   get changedFields(): Map<string, Change> {
     return new Map(this.changes.map((c) => [c.id, c]));
+  }
+
+  get netlifyConnected(): boolean {
+    return !!this.netlifyAuth;
   }
 
   get objects(): ObjectsData | null {
@@ -202,6 +211,10 @@ export default class Editor {
     }
     return objects;
   }
+
+  public onNetlifyLogout = () => {
+    this.netlifyAuth = null;
+  };
 
   public openLogin = () => {
     const newURL = `${CONFIG.authURL}?redirect_uri=${encodeURIComponent(
@@ -414,13 +427,20 @@ export default class Editor {
     });
   };
 
-  constructor(serialized: string | null, path: string, queryString: string) {
+  constructor(
+    serialized: string | null,
+    path: string,
+    queryString: string,
+    hashString: string
+  ) {
     makeObservable(this, {
       githubAuth: observable,
+      netlifyAuth: observable,
       repoList: observable,
       repo: observable,
       branch: observable,
       authenticated: computed,
+      netlifyConnected: computed,
       changedFields: computed,
       loggedIn: computed,
       cloning: observable,
@@ -433,7 +453,8 @@ export default class Editor {
       deletions: observable,
     });
     const query = new URLSearchParams(queryString);
-    if (this.loadAuth(path, query)) {
+    const hash = new URLSearchParams(hashString);
+    if (this.loadAuth(path, query, hash)) {
       setTimeout(() => window.location.replace("/"), 500);
     } else if (serialized) {
       const init = JSON.parse(serialized);
@@ -474,7 +495,11 @@ export default class Editor {
     });
   };
 
-  private loadAuth = (path: string, data: URLSearchParams): boolean => {
+  private loadAuth = (
+    path: string,
+    data: URLSearchParams,
+    hashData: URLSearchParams
+  ): boolean => {
     if (path === "/authorized/github") {
       this.githubAuth = {
         accessToken: data.get("access_token")!,
@@ -483,6 +508,15 @@ export default class Editor {
       };
       this.githubClient = new GithubClient(this.githubAuth);
       return true;
+    } else if (path === "/netlify-oauth") {
+      if (
+        window.localStorage.getItem("NETLIFY_STATE") !== hashData.get("state")
+      ) {
+        throw new Error("Invalid state.");
+      }
+      this.netlifyAuth = {
+        token: hashData.get("access_token")!,
+      };
     }
     return false;
   };

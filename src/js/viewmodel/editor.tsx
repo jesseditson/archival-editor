@@ -16,6 +16,7 @@ export const EditorVM = observer<{ editorModel: EditorModel }>(
           repo={editorModel.repo!}
           branch={editorModel.branch}
           cloneRepo={editorModel.cloneRepo}
+          netlifyConnected={editorModel.netlifyConnected}
           progress={editorModel.progressInfo}
           cloned={editorModel.cloned}
           cloning={editorModel.cloning}

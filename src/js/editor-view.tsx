@@ -28,6 +28,8 @@ interface EditorViewProps {
   progress: ProgressInfo | null;
   objectTypes?: ObjectTypes;
   objects?: Objects;
+  netlifyConnected: boolean;
+  onNetlifyLogout: () => void;
   onUpdate: (change: Change) => Promise<ValidationError | void>;
   onAddObject: (
     name: string,
@@ -113,6 +115,8 @@ export const EditorView: FC<EditorViewProps> = ({
   progress,
   reset,
   resetChanges,
+  netlifyConnected,
+  onNetlifyLogout,
   changedFields,
   objects,
   objectTypes,
@@ -143,6 +147,8 @@ export const EditorView: FC<EditorViewProps> = ({
     return (
       <SettingsView
         onDismiss={() => setShowingSettings(false)}
+        netlifyConnected={netlifyConnected}
+        onNetlifyLogout={onNetlifyLogout}
         onReset={reset}
         branch={branch}
         cloning={cloning}
