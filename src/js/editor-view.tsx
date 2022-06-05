@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
 import React, { FC, useCallback, useMemo, useState } from "react";
-import { Settings } from "react-feather";
+import { Activity, Settings } from "react-feather";
 import { Button, EditorContainer } from "./lib/styled";
 import { ObjectView } from "./object-view";
 import { ObjectTypesView } from "./object-types-view";
@@ -18,6 +18,7 @@ import { changeId } from "./lib/util";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorView } from "./error-view";
 import { SettingsView } from "./settings-view";
+import { NetlifyHistory } from "./viewmodel/netlify-history";
 
 interface EditorViewProps {
   cloned: boolean;
@@ -29,6 +30,7 @@ interface EditorViewProps {
   objectTypes?: ObjectTypes;
   objects?: Objects;
   netlifyConnected: boolean;
+  netlifyAccessToken?: string;
   onNetlifyLogout: () => void;
   onUpdate: (change: Change) => Promise<ValidationError | void>;
   onAddObject: (
@@ -116,6 +118,7 @@ export const EditorView: FC<EditorViewProps> = ({
   reset,
   resetChanges,
   netlifyConnected,
+  netlifyAccessToken,
   onNetlifyLogout,
   changedFields,
   objects,
@@ -129,6 +132,7 @@ export const EditorView: FC<EditorViewProps> = ({
   hasUnsyncedChanges,
 }) => {
   const [showingSettings, setShowingSettings] = useState(false);
+  const [showingNetlifyBuilds, setShowingNetlifyBuilds] = useState(false);
   const [showingType, setShowingType] = useState<string | null>();
   const [showingObjectIndex, setShowingObjectIndex] = useState<number | null>(
     null
@@ -157,10 +161,16 @@ export const EditorView: FC<EditorViewProps> = ({
       />
     );
   }
+  if (showingNetlifyBuilds && netlifyAccessToken) {
+    return (
+      <NetlifyHistory accessToken={netlifyAccessToken} repoURL={repo.url} />
+    )
+  }
   return (
     <EditorContainer>
       <HeaderContainer>
         <h1 onClick={goHome}>{repo.name}</h1>
+        <Activity onClick={() => setShowingNetlifyBuilds(true)} />
         <Settings onClick={() => setShowingSettings(true)} />
       </HeaderContainer>
       <ErrorBoundary FallbackComponent={ErrorView}>

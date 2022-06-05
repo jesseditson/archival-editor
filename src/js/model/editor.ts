@@ -84,6 +84,10 @@ export default class Editor {
     return !!this.netlifyAuth;
   }
 
+  get netlifyAccessToken(): string | undefined {
+    return this.netlifyAuth ? this.netlifyAuth.token : undefined;
+  }
+
   get objects(): ObjectsData | null {
     if (!this.gitObjects) {
       return null;
@@ -461,6 +465,7 @@ export default class Editor {
       this.userInfo = init.userInfo;
       this.repo = init.repo;
       this.branch = init.branch;
+      this.netlifyAuth = init.netlifyAuth;
       this.githubAuth = init.githubAuth;
       this.cloned = init.cloned;
       this.changes = init.changes || [];
@@ -510,7 +515,8 @@ export default class Editor {
       return true;
     } else if (path === "/netlify-oauth") {
       if (
-        window.localStorage.getItem("NETLIFY_STATE") !== hashData.get("state")
+        window.localStorage.getItem("NETLIFY_LOGIN_STATE") !==
+        hashData.get("state")
       ) {
         throw new Error("Invalid state.");
       }
@@ -577,6 +583,7 @@ export function onPersist(
       userInfo: editor.userInfo,
       repo: editor.repo,
       branch: editor.branch,
+      netlifyAuth: editor.netlifyAuth,
       githubAuth: editor.githubAuth,
       cloned: editor.cloned,
       changes: editor.changes,

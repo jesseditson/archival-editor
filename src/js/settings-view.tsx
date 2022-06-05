@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { uniqueId } from "lodash";
+import { v4 as uuid } from "uuid";
 import React, { FC, useCallback, useState } from "react";
 import { ArrowLeft } from "react-feather";
 import { Button } from "./lib/styled";
@@ -59,7 +59,7 @@ export const SettingsView: FC<SettingsViewProps> = ({
 }) => {
     const [branch, updateBranch] = useState(initialBranch);
     const netlifyLogin = useCallback(() => {
-        const state = uniqueId()
+        const state = uuid()
         localStorage.setItem('NETLIFY_LOGIN_STATE', state);
         window.location.href = 'https://app.netlify.com/authorize?' +
             'client_id=' + NETLIFY_CLIENT_ID +
