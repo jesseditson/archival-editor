@@ -17,6 +17,7 @@ import {
 } from "../lib/util";
 import {
   Change,
+  CommitsData,
   Deletion,
   ErrorData,
   Github,
@@ -261,6 +262,13 @@ export default class Editor {
     return this.perform(GitWorkerOperation.refreshObjects);
   };
 
+  public getGitShas = (shas: string[]): Promise<CommitsData> => {
+    return this.perform<GitWorkerOperation.shas, GitWorkerOperation.commits>(
+      GitWorkerOperation.shas,
+      shas
+    );
+  };
+
   public onAddObject = async (
     name: string,
     type: string,
@@ -458,7 +466,7 @@ export default class Editor {
     });
     const query = new URLSearchParams(queryString);
     const hash = new URLSearchParams(hashString);
-    if (this.loadAuth(path, query, hash)) {
+    if (this.loadAuth(path, query)) {
       setTimeout(() => window.location.replace("/"), 500);
     } else if (serialized) {
       const init = JSON.parse(serialized);
@@ -471,6 +479,7 @@ export default class Editor {
       this.changes = init.changes || [];
       this.deletions = init.deletions || [];
     }
+    this.loadNetlifyAuth(path, hash);
     this.worker = new Worker(
       new URL("../worker/git-worker.ts", import.meta.url),
       {
@@ -500,11 +509,7 @@ export default class Editor {
     });
   };
 
-  private loadAuth = (
-    path: string,
-    data: URLSearchParams,
-    hashData: URLSearchParams
-  ): boolean => {
+  private loadAuth = (path: string, data: URLSearchParams): boolean => {
     if (path === "/authorized/github") {
       this.githubAuth = {
         accessToken: data.get("access_token")!,
@@ -513,7 +518,12 @@ export default class Editor {
       };
       this.githubClient = new GithubClient(this.githubAuth);
       return true;
-    } else if (path === "/netlify-oauth") {
+    }
+    return false;
+  };
+
+  private loadNetlifyAuth = (path: string, hashData: URLSearchParams) => {
+    if (path === "/netlify-oauth") {
       if (
         window.localStorage.getItem("NETLIFY_LOGIN_STATE") !==
         hashData.get("state")
@@ -523,8 +533,9 @@ export default class Editor {
       this.netlifyAuth = {
         token: hashData.get("access_token")!,
       };
+      window.location.hash = "";
+      window.location.replace("/");
     }
-    return false;
   };
 
   private handleMessage = (evt: MessageEvent<GitWorkerMessage>) => {
@@ -556,21 +567,32 @@ export default class Editor {
           this.errors.push(error!);
         });
         return;
+      case GitWorkerOperation.commits:
+        const commits = message.data[GitWorkerOperation.commits];
+        const commitPromise = waitingPromises.get(message.uuid);
+        commitPromise(commits);
+        return;
       default:
         console.log(message.data);
         return;
     }
   };
 
-  private perform = <T extends GitWorkerOperation>(
+  private perform = <
+    T extends GitWorkerOperation,
+    R extends GitWorkerOperation = T
+  >(
     op: T,
     data?: GitWorkerDataType<T>
   ) => {
     const uuid = uuidv4();
     this.worker.postMessage({ op: op, uuid: uuid, data: { [op]: data } });
-    return new Promise<void>((resolve) => {
+    return new Promise<GitWorkerDataType<R>>((resolve) => {
       waitingPromises.set(uuid, resolve);
-    }).then(() => waitingPromises.delete(uuid));
+    }).then((r) => {
+      waitingPromises.delete(uuid);
+      return r;
+    });
   };
 }
 

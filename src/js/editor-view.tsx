@@ -6,6 +6,7 @@ import { ObjectView } from "./object-view";
 import { ObjectTypesView } from "./object-types-view";
 import {
   Change,
+  CommitsData,
   Github,
   Objects,
   ObjectTypes,
@@ -19,6 +20,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { ErrorView } from "./error-view";
 import { SettingsView } from "./settings-view";
 import { NetlifyHistory } from "./viewmodel/netlify-history";
+import { toJS } from "mobx";
 
 interface EditorViewProps {
   cloned: boolean;
@@ -30,6 +32,7 @@ interface EditorViewProps {
   objectTypes?: ObjectTypes;
   objects?: Objects;
   netlifyConnected: boolean;
+  getGitShas: (shas: string[]) => Promise<CommitsData>;
   netlifyAccessToken?: string;
   onNetlifyLogout: () => void;
   onUpdate: (change: Change) => Promise<ValidationError | void>;
@@ -117,6 +120,7 @@ export const EditorView: FC<EditorViewProps> = ({
   progress,
   reset,
   resetChanges,
+  getGitShas,
   netlifyConnected,
   netlifyAccessToken,
   onNetlifyLogout,
@@ -163,15 +167,17 @@ export const EditorView: FC<EditorViewProps> = ({
   }
   if (showingNetlifyBuilds && netlifyAccessToken) {
     return (
-      <NetlifyHistory accessToken={netlifyAccessToken} repoURL={repo.url} />
+      <NetlifyHistory accessToken={netlifyAccessToken} repoURL={repo.html_url} fetchShaInfo={getGitShas} onDismiss={() => setShowingNetlifyBuilds(false)} />
     )
   }
   return (
     <EditorContainer>
       <HeaderContainer>
         <h1 onClick={goHome}>{repo.name}</h1>
-        <Activity onClick={() => setShowingNetlifyBuilds(true)} />
-        <Settings onClick={() => setShowingSettings(true)} />
+        <div>
+          {netlifyConnected ? <Activity onClick={() => setShowingNetlifyBuilds(true)} /> : null}
+          <Settings onClick={() => setShowingSettings(true)} />
+        </div>
       </HeaderContainer>
       <ErrorBoundary FallbackComponent={ErrorView}>
         {showingType && showingObjectIndex !== null ? (

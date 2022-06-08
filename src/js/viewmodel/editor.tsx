@@ -24,6 +24,7 @@ export const EditorVM = observer<{ editorModel: EditorModel }>(
           cloning={editorModel.cloning}
           reset={editorModel.reset}
           resetChanges={editorModel.resetChanges}
+          getGitShas={editorModel.getGitShas}
           changedFields={editorModel.changedFields}
           objectTypes={editorModel.objects?.types}
           objects={editorModel.objects?.objects}
