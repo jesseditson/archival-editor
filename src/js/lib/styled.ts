@@ -1,6 +1,11 @@
 import styled from "@emotion/styled";
 import { XCircle } from "react-feather";
 
+export const Button = styled.button`
+  border: 0;
+  border-radius: 5px;
+`;
+
 export const EditorContainer = styled.div`
   padding: 1em;
   margin-bottom: 50px;

@@ -4,6 +4,8 @@ export enum GitWorkerOperation {
   progress,
   refreshObjects,
   objects,
+  shas,
+  commits,
   error,
   sync,
 }
@@ -44,8 +46,8 @@ export interface ObjectChildData {
   [key: string]: ObjectValue | ObjectChildData[];
 }
 export interface ObjectData extends ObjectChildData {
-  _filename: string;
-  _name: string;
+  _filename?: string;
+  _name?: string;
   _id: string;
 }
 
@@ -95,6 +97,21 @@ export interface SyncData {
   description?: string;
 }
 
+export interface CommitData {
+  sha: string;
+  message: string;
+  author: {
+    name: string; // The author's name
+    email: string; // The author's email
+    timestamp: number; // UTC Unix timestamp in seconds
+    timezoneOffset: number; // Timezone difference from UTC in minutes
+  };
+}
+
+export type CommitsData = Record<string, CommitData>;
+
+export type ShasData = string[];
+
 export type GitWorkerDataType<T extends GitWorkerOperation> =
   T extends GitWorkerOperation.objects
     ? ObjectsData
@@ -106,6 +123,10 @@ export type GitWorkerDataType<T extends GitWorkerOperation> =
     ? ErrorData
     : T extends GitWorkerOperation.sync
     ? SyncData
+    : T extends GitWorkerOperation.shas
+    ? ShasData
+    : T extends GitWorkerOperation.commits
+    ? CommitsData
     : never;
 
 export type GitWorkerDataContainer = {

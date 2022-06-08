@@ -27,7 +27,8 @@ const App: FC = () => {
       new EditorModel(
         localStorage.getItem("editorModel"),
         window.location.pathname,
-        window.location.search
+        window.location.search,
+        window.location.hash.replace(/^#/, "")
       ),
     []
   );

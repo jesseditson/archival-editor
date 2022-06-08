@@ -19,6 +19,8 @@ import {
   WriteableObjectData,
   ObjectTypes,
   ObjectChildData,
+  ShasData,
+  CommitsData,
 } from "../types";
 import { parseChangeId, setChildField } from "../lib/util";
 
@@ -54,6 +56,18 @@ self.onmessage = async (evt) => {
     case GitWorkerOperation.sync:
       await handleErrors(() => sync(message.data[message.op] as SyncData));
       break;
+    case GitWorkerOperation.shas:
+      await handleErrors(async () => {
+        const commits = await commitData(message.data[message.op] as ShasData);
+        self.postMessage({
+          op: GitWorkerOperation.commits,
+          uuid: message.uuid,
+          data: {
+            [GitWorkerOperation.commits]: commits,
+          },
+        });
+      });
+      return;
   }
   self.postMessage({ op: GitWorkerOperation.confirm, uuid: message.uuid });
 };
@@ -100,7 +114,7 @@ const clone = async (data: GitCloneData) => {
     ref: data.branch,
     singleBranch: true,
     noTags: true,
-    depth: 1,
+    depth: 100,
     onProgress,
     onMessage(msg) {
       console.log(msg);
@@ -137,6 +151,19 @@ const hashForObject = async (object: ObjectData): Promise<string> => {
   );
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+};
+
+const commitData = async (shas: string[]): Promise<CommitsData> => {
+  const commitResponses = await Promise.allSettled(
+    shas.map((oid) => git.readCommit({ oid, fs, dir: REPO_DIR }))
+  );
+  return commitResponses.reduce((r, p) => {
+    if (p.status == "fulfilled") {
+      const { oid, commit } = p.value;
+      r[oid] = { sha: oid, message: commit.message, author: commit.author };
+    }
+    return r;
+  }, {});
 };
 
 const parseObject = async (

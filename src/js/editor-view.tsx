@@ -1,14 +1,13 @@
 import styled from "@emotion/styled";
 import React, { FC, useCallback, useMemo, useState } from "react";
-import { ArrowLeft, Settings } from "react-feather";
-import { EditorContainer } from "./lib/styled";
+import { Activity, Settings } from "react-feather";
+import { Button, EditorContainer } from "./lib/styled";
 import { ObjectView } from "./object-view";
 import { ObjectTypesView } from "./object-types-view";
 import {
   Change,
+  CommitsData,
   Github,
-  ObjectData,
-  ObjectDefinition,
   Objects,
   ObjectTypes,
   ProgressInfo,
@@ -19,6 +18,9 @@ import { ObjectsView } from "./objects-view";
 import { changeId } from "./lib/util";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorView } from "./error-view";
+import { SettingsView } from "./settings-view";
+import { NetlifyHistory } from "./viewmodel/netlify-history";
+import { toJS } from "mobx";
 
 interface EditorViewProps {
   cloned: boolean;
@@ -29,6 +31,10 @@ interface EditorViewProps {
   progress: ProgressInfo | null;
   objectTypes?: ObjectTypes;
   objects?: Objects;
+  netlifyConnected: boolean;
+  getGitShas: (shas: string[]) => Promise<CommitsData>;
+  netlifyAccessToken?: string;
+  onNetlifyLogout: () => void;
   onUpdate: (change: Change) => Promise<ValidationError | void>;
   onAddObject: (
     name: string,
@@ -50,79 +56,6 @@ interface EditorViewProps {
   cloneRepo: (branch: string) => void;
   reset: () => void;
 }
-
-const SettingsViewContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  font-size: 1.2em;
-  & > * {
-    margin-bottom: 1em;
-  }
-`;
-const SettingsHeader = styled.div`
-  display: flex;
-  align-items: center;
-  h2 {
-    flex-grow: 1;
-    font-size: 1em;
-  }
-`;
-
-interface SettingsViewProps {
-  cloning: boolean;
-  branch: string;
-  onReset: () => void;
-  onDismiss: () => void;
-  cloneRepo: (branch: string) => void;
-  progress: ProgressInfo | null;
-}
-
-const Button = styled.button`
-  border: 0;
-  border-radius: 5px;
-`;
-
-const ResetButton = styled(Button)`
-  background-color: red;
-  color: white;
-`;
-
-const SettingsView: FC<SettingsViewProps> = ({
-  branch: initialBranch,
-  cloning,
-  cloneRepo,
-  progress,
-  onReset,
-  onDismiss,
-}) => {
-  const [branch, updateBranch] = useState(initialBranch);
-  return (
-    <SettingsViewContainer>
-      <SettingsHeader>
-        <ArrowLeft onClick={onDismiss} />
-        <h2>Settings</h2>
-      </SettingsHeader>
-      <div>
-        {cloning ? null : (
-          <input
-            value={branch}
-            onChange={(e) => updateBranch(e.target.value)}
-            placeholder="branch"
-          />
-        )}
-        {cloning ? null : (
-          <Button onClick={() => cloneRepo(branch)}>Checkout Branch</Button>
-        )}
-      </div>
-      {progress ? (
-        <span>
-          {progress.task}: {Math.round(progress.progress * 100)}%
-        </span>
-      ) : null}
-      <ResetButton onClick={onReset}>Reset Repository</ResetButton>
-    </SettingsViewContainer>
-  );
-};
 
 const HeaderContainer = styled.div`
   display: flex;
@@ -187,6 +120,10 @@ export const EditorView: FC<EditorViewProps> = ({
   progress,
   reset,
   resetChanges,
+  getGitShas,
+  netlifyConnected,
+  netlifyAccessToken,
+  onNetlifyLogout,
   changedFields,
   objects,
   objectTypes,
@@ -199,6 +136,7 @@ export const EditorView: FC<EditorViewProps> = ({
   hasUnsyncedChanges,
 }) => {
   const [showingSettings, setShowingSettings] = useState(false);
+  const [showingNetlifyBuilds, setShowingNetlifyBuilds] = useState(false);
   const [showingType, setShowingType] = useState<string | null>();
   const [showingObjectIndex, setShowingObjectIndex] = useState<number | null>(
     null
@@ -217,6 +155,8 @@ export const EditorView: FC<EditorViewProps> = ({
     return (
       <SettingsView
         onDismiss={() => setShowingSettings(false)}
+        netlifyConnected={netlifyConnected}
+        onNetlifyLogout={onNetlifyLogout}
         onReset={reset}
         branch={branch}
         cloning={cloning}
@@ -225,11 +165,19 @@ export const EditorView: FC<EditorViewProps> = ({
       />
     );
   }
+  if (showingNetlifyBuilds && netlifyAccessToken) {
+    return (
+      <NetlifyHistory accessToken={netlifyAccessToken} repoURL={repo.html_url} fetchShaInfo={getGitShas} onDismiss={() => setShowingNetlifyBuilds(false)} />
+    )
+  }
   return (
     <EditorContainer>
       <HeaderContainer>
         <h1 onClick={goHome}>{repo.name}</h1>
-        <Settings onClick={() => setShowingSettings(true)} />
+        <div>
+          {netlifyConnected ? <Activity onClick={() => setShowingNetlifyBuilds(true)} /> : null}
+          <Settings onClick={() => setShowingSettings(true)} />
+        </div>
       </HeaderContainer>
       <ErrorBoundary FallbackComponent={ErrorView}>
         {showingType && showingObjectIndex !== null ? (

@@ -17,6 +17,7 @@ import {
 } from "../lib/util";
 import {
   Change,
+  CommitsData,
   Deletion,
   ErrorData,
   Github,
@@ -41,10 +42,15 @@ const CONFIG = {
   scopes: ["repo"],
 };
 
+interface NetlifyAuth {
+  token: string;
+}
+
 const waitingPromises: Map<string, Function> = new Map();
 export default class Editor {
   githubAuth: GithubAuth | null = null;
   githubClient: GithubClient | null = null;
+  netlifyAuth: NetlifyAuth | null = null;
   userInfo: Github.User | null = null;
   repoList: Github.Repo[] = [];
   repo: Github.Repo | null = null;
@@ -73,6 +79,14 @@ export default class Editor {
 
   get changedFields(): Map<string, Change> {
     return new Map(this.changes.map((c) => [c.id, c]));
+  }
+
+  get netlifyConnected(): boolean {
+    return !!this.netlifyAuth;
+  }
+
+  get netlifyAccessToken(): string | undefined {
+    return this.netlifyAuth ? this.netlifyAuth.token : undefined;
   }
 
   get objects(): ObjectsData | null {
@@ -203,6 +217,10 @@ export default class Editor {
     return objects;
   }
 
+  public onNetlifyLogout = () => {
+    this.netlifyAuth = null;
+  };
+
   public openLogin = () => {
     const newURL = `${CONFIG.authURL}?redirect_uri=${encodeURIComponent(
       CONFIG.redirectURI
@@ -242,6 +260,13 @@ export default class Editor {
 
   public refreshObjects = () => {
     return this.perform(GitWorkerOperation.refreshObjects);
+  };
+
+  public getGitShas = (shas: string[]): Promise<CommitsData> => {
+    return this.perform<GitWorkerOperation.shas, GitWorkerOperation.commits>(
+      GitWorkerOperation.shas,
+      shas
+    );
   };
 
   public onAddObject = async (
@@ -414,13 +439,20 @@ export default class Editor {
     });
   };
 
-  constructor(serialized: string | null, path: string, queryString: string) {
+  constructor(
+    serialized: string | null,
+    path: string,
+    queryString: string,
+    hashString: string
+  ) {
     makeObservable(this, {
       githubAuth: observable,
+      netlifyAuth: observable,
       repoList: observable,
       repo: observable,
       branch: observable,
       authenticated: computed,
+      netlifyConnected: computed,
       changedFields: computed,
       loggedIn: computed,
       cloning: observable,
@@ -433,6 +465,7 @@ export default class Editor {
       deletions: observable,
     });
     const query = new URLSearchParams(queryString);
+    const hash = new URLSearchParams(hashString);
     if (this.loadAuth(path, query)) {
       setTimeout(() => window.location.replace("/"), 500);
     } else if (serialized) {
@@ -440,11 +473,13 @@ export default class Editor {
       this.userInfo = init.userInfo;
       this.repo = init.repo;
       this.branch = init.branch;
+      this.netlifyAuth = init.netlifyAuth;
       this.githubAuth = init.githubAuth;
       this.cloned = init.cloned;
       this.changes = init.changes || [];
       this.deletions = init.deletions || [];
     }
+    this.loadNetlifyAuth(path, hash);
     this.worker = new Worker(
       new URL("../worker/git-worker.ts", import.meta.url),
       {
@@ -487,6 +522,22 @@ export default class Editor {
     return false;
   };
 
+  private loadNetlifyAuth = (path: string, hashData: URLSearchParams) => {
+    if (path === "/netlify-oauth") {
+      if (
+        window.localStorage.getItem("NETLIFY_LOGIN_STATE") !==
+        hashData.get("state")
+      ) {
+        throw new Error("Invalid state.");
+      }
+      this.netlifyAuth = {
+        token: hashData.get("access_token")!,
+      };
+      window.location.hash = "";
+      window.location.replace("/");
+    }
+  };
+
   private handleMessage = (evt: MessageEvent<GitWorkerMessage>) => {
     const message = evt.data;
     switch (message.op) {
@@ -516,21 +567,32 @@ export default class Editor {
           this.errors.push(error!);
         });
         return;
+      case GitWorkerOperation.commits:
+        const commits = message.data[GitWorkerOperation.commits];
+        const commitPromise = waitingPromises.get(message.uuid);
+        commitPromise(commits);
+        return;
       default:
         console.log(message.data);
         return;
     }
   };
 
-  private perform = <T extends GitWorkerOperation>(
+  private perform = <
+    T extends GitWorkerOperation,
+    R extends GitWorkerOperation = T
+  >(
     op: T,
     data?: GitWorkerDataType<T>
   ) => {
     const uuid = uuidv4();
     this.worker.postMessage({ op: op, uuid: uuid, data: { [op]: data } });
-    return new Promise<void>((resolve) => {
+    return new Promise<GitWorkerDataType<R>>((resolve) => {
       waitingPromises.set(uuid, resolve);
-    }).then(() => waitingPromises.delete(uuid));
+    }).then((r) => {
+      waitingPromises.delete(uuid);
+      return r;
+    });
   };
 }
 
@@ -543,6 +605,7 @@ export function onPersist(
       userInfo: editor.userInfo,
       repo: editor.repo,
       branch: editor.branch,
+      netlifyAuth: editor.netlifyAuth,
       githubAuth: editor.githubAuth,
       cloned: editor.cloned,
       changes: editor.changes,
